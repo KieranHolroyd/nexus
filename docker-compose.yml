@@ -1,6 +1,6 @@
 services:
   nexus:
-    build: .
+    image: ghcr.io/nitrexdesign/nexus:sha-6f23ebb
     ports:
       - "8080:8080"
     volumes:
@@ -9,8 +9,8 @@ services:
       - PORT=8080
       - DB_PATH=/app/data/nexus.db
       - WEBAUTHN_RP_NAME=Nexus
-      - WEBAUTHN_RP_ID=localhost
-      - WEBAUTHN_RP_ORIGIN=http://localhost:8080
+      - WEBAUTHN_RP_ID=start.holroydnet.uk
+      - WEBAUTHN_RP_ORIGIN=https://start.holroydnet.uk
 
 volumes:
   nexus-data:

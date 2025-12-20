@@ -24,12 +24,29 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
 		path += "/"
 	}
-	path += "*"
 
-	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+		
+		// If requesting something that looks like an API, don't fallback
+		if strings.HasPrefix(r.URL.Path, "/api") {
+			http.NotFound(w, r)
+			return
+		}
+
 		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
+		
+		// Check if file exists
+		f, err := root.Open(strings.TrimPrefix(r.URL.Path, pathPrefix))
+		if err != nil {
+			// Serve index.html for SPA routing
+			r.URL.Path = pathPrefix + "/"
+			fs.ServeHTTP(w, r)
+			return
+		}
+		f.Close()
+
 		fs.ServeHTTP(w, r)
 	})
 }
@@ -64,6 +81,7 @@ func main() {
 	r.Post("/api/auth/login/finish", auth.FinishLogin)
 	
 	api.RegisterServiceHandlers(r)
+	api.RegisterUserHandlers(r)
 
 	// Serve Icons
 	FileServer(r, "/icons", http.Dir("data/icons"))

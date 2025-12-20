@@ -99,7 +99,14 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	// Save user if new
 	if err := db.CreateUser(user); err != nil {
-		// Ignore if already exists
+		// If user exists, it might be a second credential registration
+		// but for now our scaffold just returns
+	} else {
+		// Check if first user
+		count, _ := db.CountUsers()
+		if count == 1 {
+			db.UpdateUserApproval(user.ID, true)
+		}
 	}
 
 	if err := db.SaveCredential(user.ID, credential); err != nil {
@@ -159,6 +166,11 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	_, err = WebAuthn.FinishLogin(user, *session, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if !user.Approved {
+		http.Error(w, "your account is pending approval", http.StatusForbidden)
 		return
 	}
 

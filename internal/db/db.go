@@ -50,7 +50,8 @@ func createTables() error {
 		`CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
 			username TEXT UNIQUE NOT NULL,
-			display_name TEXT
+			display_name TEXT,
+			approved BOOLEAN DEFAULT FALSE
 		);`,
 		`CREATE TABLE IF NOT EXISTS credentials (
 			id BLOB PRIMARY KEY,
@@ -85,6 +86,8 @@ func createTables() error {
 	// Simple migration for existing DB
 	DB.Exec("ALTER TABLE services ADD COLUMN public BOOLEAN DEFAULT FALSE;")
 	DB.Exec("ALTER TABLE services ADD COLUMN auth_required BOOLEAN DEFAULT FALSE;")
+	DB.Exec("ALTER TABLE users ADD COLUMN approved BOOLEAN DEFAULT FALSE;")
+	DB.Exec("UPDATE users SET approved = TRUE WHERE (SELECT COUNT(*) FROM users) = 1;") // Keep existing user approved if migration
 	DB.Exec("ALTER TABLE credentials ADD COLUMN backup_eligible BOOLEAN DEFAULT FALSE;")
 	DB.Exec("ALTER TABLE credentials ADD COLUMN backup_state BOOLEAN DEFAULT FALSE;")
 
@@ -93,8 +96,8 @@ func createTables() error {
 
 func GetUserByUsername(username string) (*models.User, error) {
 	var user models.User
-	err := DB.QueryRow("SELECT id, username, display_name FROM users WHERE username = ?", username).
-		Scan(&user.ID, &user.Username, &user.DisplayName)
+	err := DB.QueryRow("SELECT id, username, display_name, approved FROM users WHERE username = ?", username).
+		Scan(&user.ID, &user.Username, &user.DisplayName, &user.Approved)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +120,55 @@ func GetUserByUsername(username string) (*models.User, error) {
 }
 
 func CreateUser(user *models.User) error {
-	_, err := DB.Exec("INSERT INTO users (id, username, display_name) VALUES (?, ?, ?)", user.ID, user.Username, user.DisplayName)
+	_, err := DB.Exec("INSERT INTO users (id, username, display_name, approved) VALUES (?, ?, ?, ?)", user.ID, user.Username, user.DisplayName, user.Approved)
 	return err
+}
+
+func GetUsers() ([]models.User, error) {
+	rows, err := DB.Query("SELECT id, username, display_name, approved FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var u models.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Approved); err == nil {
+			users = append(users, u)
+		}
+	}
+	return users, nil
+}
+
+func UpdateUserApproval(id string, approved bool) error {
+	_, err := DB.Exec("UPDATE users SET approved = ? WHERE id = ?", approved, id)
+	return err
+}
+
+func DeleteUser(id string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec("DELETE FROM credentials WHERE user_id = ?", id)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func CountUsers() (int, error) {
+	var count int
+	err := DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
 }
 
 func SaveCredential(userID string, cred *webauthn.Credential) error {

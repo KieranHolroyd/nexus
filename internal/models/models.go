@@ -8,6 +8,7 @@ type User struct {
     ID          string `json:"id"`
     Username    string `json:"username"`
     DisplayName string `json:"display_name"`
+    Approved    bool   `json:"approved"`
     Credentials []webauthn.Credential `json:"-"`
 }
 

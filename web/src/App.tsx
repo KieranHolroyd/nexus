@@ -3,15 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Auth } from "@/components/Auth";
 import { PublicDashboard } from "@/components/PublicDashboard";
 import { AdminDashboard } from "@/components/AdminDashboard";
+import { Navbar } from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { FloatingNav } from "@/components/FloatingNav";
-
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 function App() {
 	const [user, setUser] = useState<any>(null);
+    const [search, setSearch] = useState("");
 
-	// Check for existing session (mocked)
 	useEffect(() => {
 		const savedUser = localStorage.getItem("nexus_user");
 		if (savedUser) {
@@ -32,15 +32,21 @@ function App() {
 	return (
 		<TooltipProvider>
 			<BrowserRouter>
+                <Navbar 
+                    user={user} 
+                    onLogout={handleLogout} 
+                    search={search} 
+                    onSearchChange={setSearch} 
+                />
 				<Routes>
-					<Route path="/" element={<PublicDashboard />} />
+					<Route path="/" element={<PublicDashboard search={search} />} />
 					<Route 
 						path="/auth" 
 						element={user ? <Navigate to="/admin" /> : <Auth onLogin={handleLogin} />} 
 					/>
 					<Route 
 						path="/admin" 
-						element={user ? <AdminDashboard onLogout={handleLogout} /> : <Navigate to="/auth" />} 
+						element={user ? <AdminDashboard search={search} /> : <Navigate to="/auth" />} 
 					/>
 				</Routes>
 				<FloatingNav />

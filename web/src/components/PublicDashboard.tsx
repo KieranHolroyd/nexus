@@ -1,39 +1,31 @@
 import { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Server, LogIn, Search, LayoutGrid, List as ListIcon } from "lucide-react";
+import { Server, LayoutGrid, List as ListIcon, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface Service {
 	id: string;
 	name: string;
 	url: string;
-	description: string;
 	icon: string;
 	group: string;
+	order: number;
     public: boolean;
-	auth_required: boolean;
+    auth_required: boolean;
 }
 
-export function PublicDashboard() {
+interface PublicDashboardProps {
+    search: string;
+}
+
+export function PublicDashboard({ search }: PublicDashboardProps) {
 	const [services, setServices] = useState<Service[]>([]);
 	const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [viewMode, setViewMode] = useState<"grid" | "list">(
-        (localStorage.getItem("public_view_mode") as "grid" | "list") || "grid"
+	const [viewMode, setViewMode] = useState<'grid' | 'list'>(
+        (localStorage.getItem('public_view_mode') as 'grid' | 'list') || 'grid'
     );
-
-    useEffect(() => {
-        localStorage.setItem("public_view_mode", viewMode);
-    }, [viewMode]);
 
 	useEffect(() => {
 		fetch("/api/services")
@@ -51,152 +43,139 @@ export function PublicDashboard() {
 			.finally(() => setLoading(false));
 	}, []);
 
-    const filteredServices = services.filter(s => 
-        s.name.toLowerCase().includes(search.toLowerCase()) || 
-        s.group.toLowerCase().includes(search.toLowerCase())
-    );
+    useEffect(() => {
+        localStorage.setItem('public_view_mode', viewMode);
+    }, [viewMode]);
 
-    const groupedServices_record: Record<string, Service[]> = {};
+	const filteredServices = services.filter(s => 
+		s.name.toLowerCase().includes(search.toLowerCase()) ||
+		s.group.toLowerCase().includes(search.toLowerCase())
+	);
+
+    const groupedServices: Record<string, Service[]> = {};
     filteredServices.forEach(s => {
-        if (!groupedServices_record[s.group]) groupedServices_record[s.group] = [];
-        groupedServices_record[s.group].push(s);
+        if (!groupedServices[s.group]) groupedServices[s.group] = [];
+        groupedServices[s.group].push(s);
     });
-    const groupedServices = groupedServices_record;
 
 	return (
-		<div className="min-h-screen bg-background flex flex-col">
-			<header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-				<div className="container mx-auto flex h-14 items-center justify-between px-4">
-					<div className="flex items-center gap-2">
-						<Server className="h-6 w-6 text-primary" />
-						<span className="font-bold text-xl">Nexus</span>
+		<div className="min-h-[calc(100vh-4rem)] bg-neutral-50/50 dark:bg-neutral-950 px-4 md:px-8 pb-16">
+			<div className="container mx-auto py-12">
+				<div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+					<div className="space-y-1">
+						<h1 className="text-4xl font-black tracking-tight text-foreground">Welcome Home</h1>
+						<p className="text-muted-foreground text-lg">Your personal command center.</p>
 					</div>
-
-					<div className="flex-1 max-w-sm mx-4">
-						<div className="relative">
-							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="search"
-								placeholder="Search services..."
-								className="pl-8 h-9"
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-							/>
-						</div>
+					<div className="flex border rounded-xl h-11 items-center overflow-hidden bg-card p-1 shadow-sm">
+						<Button 
+							variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
+							size="sm" 
+							className="rounded-lg h-full px-4"
+							onClick={() => setViewMode('grid')}
+						>
+							<LayoutGrid className="h-4 w-4 mr-2" /> Grid
+						</Button>
+						<Button 
+							variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+							size="sm" 
+							className="rounded-lg h-full px-4"
+							onClick={() => setViewMode('list')}
+						>
+							<ListIcon className="h-4 w-4 mr-2" /> List
+						</Button>
 					</div>
-
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button asChild variant="outline" size="sm">
-								<Link to="/auth">
-									<LogIn className="mr-2 h-4 w-4" />
-									Login
-								</Link>
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>Admin Portal</TooltipContent>
-					</Tooltip>
-
-                    <div className="flex border rounded-md ml-2 h-9 items-center overflow-hidden">
-                        <Button 
-                            variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
-                            size="sm" 
-                            className="rounded-none h-full"
-                            onClick={() => setViewMode('grid')}
-                        >
-                            <LayoutGrid className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                            variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
-                            size="sm" 
-                            className="rounded-none h-full"
-                            onClick={() => setViewMode('list')}
-                        >
-                            <ListIcon className="h-4 w-4" />
-                        </Button>
-                    </div>
 				</div>
-			</header>
 
-			<main className="container mx-auto flex-1 p-4 md:p-6">
 				{loading ? (
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-						{[1, 2, 3, 4].map(i => (
-							<div key={i} className="h-32 rounded-lg bg-muted animate-pulse" />
-						))}
+					<div className="flex flex-col items-center justify-center py-32">
+                        <div className="relative">
+						    <Loader2 className="animate-spin h-12 w-12 text-primary" />
+                            <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse rounded-full" />
+                        </div>
+						<p className="text-muted-foreground mt-6 text-xl font-medium">Powering up your services...</p>
 					</div>
 				) : filteredServices.length === 0 ? (
-					<div className="flex flex-col items-center justify-center h-64 border rounded-lg border-dashed">
-						<Search className="h-12 w-12 text-muted-foreground mb-4 opacity-20" />
-						<h3 className="text-lg font-medium">No services found</h3>
-						<p className="text-muted-foreground">Try a different search term.</p>
+					<div className="text-center py-32 border-2 border-dashed rounded-3xl bg-card/50">
+						<Search className="mx-auto h-20 w-20 text-muted-foreground mb-6 opacity-10" />
+						<h3 className="text-2xl font-black mb-2">No results found</h3>
+						<p className="text-muted-foreground text-lg max-w-md mx-auto">We couldn't find any services matching your search query.</p>
 					</div>
 				) : (
-					<div className="space-y-6">
+					<div className="space-y-16">
 						{Object.entries(groupedServices).map(([group, groupServices]) => (
-							<div key={group} className="space-y-4">
-								<h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-									{group}
-									<Badge variant="secondary" className="ml-2 font-mono">{groupServices.length}</Badge>
-								</h3>
+							<section key={group} className="space-y-8">
+                                <div className="flex items-center gap-6">
+								    <h2 className="text-2xl font-black tracking-tight">{group}</h2>
+                                    <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                                </div>
 								<div className={cn(
-                                    "grid gap-4",
-                                    viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5" : "grid-cols-1"
-                                )}>
-									{groupServices.map((service) => (
-										<a
-											key={service.id}
-											href={service.url}
-											target="_blank"
-											rel="noreferrer"
-											className="block"
+									"grid gap-6",
+									viewMode === 'grid' 
+										? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+										: "grid-cols-1"
+								)}>
+									{groupServices.map(s => (
+										<a 
+											key={s.id} 
+											href={s.url} 
+											target="_blank" 
+											rel="noopener noreferrer"
+											className="block group"
 										>
-											<Card className="h-full hover:border-primary transition-colors">
-												<CardHeader className={cn(
-                                                    "p-4 flex gap-4",
-                                                    viewMode === 'grid' ? "flex-row items-center" : "flex-row items-center"
-                                                )}>
+											<Card className={cn(
+												"h-full transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 overflow-hidden",
+												viewMode === 'list' && "hover:translate-x-1 hover:-translate-y-0"
+											)}>
+												<CardContent className={cn(
+													"p-6 h-full",
+													viewMode === 'list' && "flex items-center gap-6 p-4"
+												)}>
 													<div className={cn(
-                                                        "shrink-0 flex items-center justify-center rounded border bg-muted relative overflow-hidden group/logo",
-                                                        viewMode === 'grid' ? "h-12 w-12" : "h-14 w-14"
-                                                    )}>
-                                                        {service.icon && (
+														"rounded-2xl border bg-muted/30 flex items-center justify-center relative overflow-hidden transition-colors group-hover:bg-muted/50",
+														viewMode === 'grid' ? "size-16 mb-6" : "size-14"
+													)}>
+														{s.icon && (
                                                             <div 
-                                                                className="absolute inset-0 opacity-20 blur-md scale-150 transition-transform group-hover/logo:scale-[2]"
+                                                                className="absolute inset-0 opacity-10 blur-xl scale-150 transition-transform group-hover:scale-[2]"
                                                                 style={{ 
-                                                                    backgroundImage: `url(${service.icon})`,
+                                                                    backgroundImage: `url(${s.icon})`,
                                                                     backgroundSize: 'cover',
                                                                     backgroundPosition: 'center'
                                                                 }}
                                                             />
                                                         )}
-														{service.icon ? (
-															<img src={service.icon} alt={service.name} className="relative z-10 max-w-[70%] max-h-[70%] object-contain drop-shadow-sm" />
+														{s.icon ? (
+															<img 
+																src={s.icon} 
+																alt={s.name} 
+																className="relative z-10 max-w-[65%] max-h-[65%] object-contain drop-shadow-md transition-transform group-hover:scale-110" 
+															/>
 														) : (
-															<Server className="relative z-10 h-6 w-6 text-muted-foreground" />
+															<Server size={viewMode === 'grid' ? 32 : 24} className="relative z-10 text-muted-foreground" />
 														)}
 													</div>
-													<div className="min-w-0 flex-1">
-														<CardTitle className="text-sm font-bold truncate">{service.name}</CardTitle>
-														{service.auth_required && (
-															<Badge variant="outline" className="text-[10px] h-4 px-1 mt-1">
-																SECURED
-															</Badge>
-														)}
-                                                        {viewMode === 'list' && (
-                                                            <p className="text-xs text-muted-foreground truncate mt-1">{service.url}</p>
-                                                        )}
+													
+													<div className="flex-1 min-w-0">
+														<div className="flex items-center gap-2 mb-1">
+															<h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{s.name}</h3>
+															{s.auth_required && (
+																<Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-primary/20 text-primary bg-primary/5">
+																	Auth
+																</Badge>
+															)}
+														</div>
+														<p className="text-sm text-muted-foreground truncate opacity-70 group-hover:opacity-100 transition-opacity">{s.url.replace(/^https?:\/\//, '')}</p>
 													</div>
-												</CardHeader>
+												</CardContent>
 											</Card>
 										</a>
 									))}
 								</div>
-							</div>
+							</section>
 						))}
 					</div>
 				)}
-			</main>
+			</div>
 		</div>
 	);
 }
