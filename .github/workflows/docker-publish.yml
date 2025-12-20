@@ -13,6 +13,7 @@ env:
 jobs:
   build:
     # runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
