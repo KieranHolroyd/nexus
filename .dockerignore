@@ -1,0 +1,10 @@
+**/.air.toml
+**/node_modules
+**/dist
+**/tmp
+**/data
+.git
+.github
+import.json
+Dockerfile
+docker-compose.yml

@@ -1,0 +1,43 @@
+# Binaries
+nexus
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+go.work
+go.work.sum
+vendor/
+*.test
+*.out
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.eslintcache
+web/.env
+web/.env.local
+
+# Build & Tooling
+tmp/
+.air.toml.bak
+
+# Database & Data
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/icons/*
+!data/icons/.gitkeep
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

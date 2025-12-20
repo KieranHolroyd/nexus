@@ -1,0 +1,16 @@
+services:
+  nexus:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - nexus-data:/app/data
+    environment:
+      - PORT=8080
+      - DB_PATH=/app/data/nexus.db
+      - WEBAUTHN_RP_NAME=Nexus
+      - WEBAUTHN_RP_ID=localhost
+      - WEBAUTHN_RP_ORIGIN=http://localhost:8080
+
+volumes:
+  nexus-data:
