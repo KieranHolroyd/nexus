@@ -13,7 +13,7 @@ env:
 
 jobs:
   build:
-    runs-on: blacksmith-2vcpu-ubuntu-22.04
+    runs-on: warp-ubuntu-latest-x64-2x
     permissions:
       contents: read
       packages: write
