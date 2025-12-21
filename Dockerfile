@@ -2,8 +2,8 @@
 FROM node:20-slim AS frontend-builder
 WORKDIR /app/web
 RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY web/package.json web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY web/package.json  ./
+RUN pnpm install 
 COPY web ./
 RUN pnpm build
 
