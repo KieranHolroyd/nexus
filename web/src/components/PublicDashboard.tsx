@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Service {
   id: string;
@@ -25,6 +26,21 @@ interface Service {
 interface PublicDashboardProps {
   search: string;
 }
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 export function PublicDashboard({ search }: PublicDashboardProps) {
   const [services, setServices] = useState<Service[]>([]);
@@ -69,7 +85,11 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-neutral-50/50 dark:bg-neutral-950 px-4 md:px-8 pb-16">
       <div className="container mx-auto py-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12"
+        >
           <div className="space-y-1">
             <h1 className="text-4xl font-black tracking-tight text-foreground">
               Welcome Home
@@ -96,7 +116,7 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
               <ListIcon className="h-4 w-4 mr-2" /> List
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
@@ -109,111 +129,130 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
             </p>
           </div>
         ) : filteredServices.length === 0 ? (
-          <div className="text-center py-32 border-2 border-dashed rounded-3xl bg-card/50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-32 border-2 border-dashed rounded-3xl bg-card/50"
+          >
             <Search className="mx-auto h-20 w-20 text-muted-foreground mb-6 opacity-10" />
             <h3 className="text-2xl font-black mb-2">No results found</h3>
             <p className="text-muted-foreground text-lg max-w-md mx-auto">
               We couldn't find any services matching your search query.
             </p>
-          </div>
+          </motion.div>
         ) : (
           <div className="space-y-16">
-            {Object.entries(groupedServices).map(([group, groupServices]) => (
-              <section key={group} className="space-y-2">
-                <div className="flex items-center gap-6">
-                  <h2 className="text-2xl font-black tracking-tight">
-                    {group}
-                  </h2>
-                  <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
-                </div>
-                <div
-                  className={cn(
-                    "grid gap-2",
-                    viewMode === "grid"
-                      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                      : "grid-cols-1",
-                  )}
+            <AnimatePresence mode="popLayout">
+              {Object.entries(groupedServices).map(([group, groupServices]) => (
+                <motion.section
+                  key={group}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="space-y-4"
                 >
-                  {groupServices.map((s) => (
-                    <a
-                      key={s.id}
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block group"
-                    >
-                      <Card
-                        className={cn(
-                          "h-full transition-all duration-300 p-0 hover:shadow-md hover:shadow-gray-800/5 hover:-translate-y-1 overflow-hidden",
-                          viewMode === "list" &&
-                            "hover:translate-x-1 hover:translate-y-0 ",
-                        )}
+                  <div className="flex items-center gap-6">
+                    <h2 className="text-2xl font-black tracking-tight">
+                      {group}
+                    </h2>
+                    <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+                  </div>
+                  <motion.div
+                    variants={container}
+                    initial="hidden"
+                    animate="show"
+                    className={cn(
+                      "grid gap-4",
+                      viewMode === "grid"
+                        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                        : "grid-cols-1",
+                    )}
+                  >
+                    {groupServices.map((s) => (
+                      <motion.a
+                        key={s.id}
+                        variants={item}
+                        layout
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block group"
                       >
-                        <CardContent
+                        <Card
                           className={cn(
-                            "p-5 h-auto flex flex-row gap-2 pb-0",
+                            "h-full transition-all duration-300 p-0 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/50 overflow-hidden",
                             viewMode === "list" &&
-                              "p-2 flex items-center gap-6",
+                              "hover:translate-x-1",
+                            viewMode === "grid" && "hover:-translate-y-1"
                           )}
                         >
-                          <div
+                          <CardContent
                             className={cn(
-                              "rounded-2xl border bg-muted/30 flex flex-row items-center justify-center relative overflow-hidden transition-colors group-hover:bg-muted/50",
-                              viewMode === "grid" ? "size-16 mb-6" : "size-14",
+                              "p-5 h-auto flex flex-row gap-4",
+                              viewMode === "list" &&
+                                "p-3 flex items-center gap-6",
                             )}
                           >
-                            {s.icon && (
-                              <div
-                                className="absolute inset-0 opacity-10 blur-xl scale-150 transition-transform group-hover:scale-[2]"
-                                style={{
-                                  backgroundImage: `url(${s.icon})`,
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
-                                }}
-                              />
-                            )}
-                            {s.icon ? (
-                              <img
-                                src={s.icon}
-                                alt={s.name}
-                                className="relative z-10 max-w-[65%] max-h-[65%] object-contain drop-shadow-md transition-transform group-hover:scale-110"
-                              />
-                            ) : (
-                              <Server
-                                size={viewMode === "grid" ? 32 : 24}
-                                className="relative z-10 text-muted-foreground"
-                              />
-                            )}
-                          </div>
-
-                          <div className="min-h-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
-                                {s.name}
-                              </h3>
-                              {s.auth_required && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] h-4 py-0 px-1 border-primary/20 text-primary bg-primary/5"
-                                >
-                                  Auth
-                                </Badge>
+                            <div
+                              className={cn(
+                                "rounded-2xl border bg-muted/30 flex flex-row items-center justify-center relative overflow-hidden transition-colors group-hover:bg-primary/5 group-hover:border-primary/20",
+                                viewMode === "grid" ? "size-16 mb-2" : "size-14",
+                              )}
+                            >
+                              {s.icon && (
+                                <div
+                                  className="absolute inset-0 opacity-10 blur-xl scale-150 transition-transform group-hover:scale-[2]"
+                                  style={{
+                                    backgroundImage: `url(${s.icon})`,
+                                    backgroundSize: "cover",
+                                    backgroundPosition: "center",
+                                  }}
+                                />
+                              )}
+                              {s.icon ? (
+                                <img
+                                  src={s.icon}
+                                  alt={s.name}
+                                  className="relative z-10 max-w-[65%] max-h-[65%] object-contain drop-shadow-md transition-transform group-hover:scale-110"
+                                />
+                              ) : (
+                                <Server
+                                  size={viewMode === "grid" ? 32 : 24}
+                                  className="relative z-10 text-muted-foreground"
+                                />
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground truncate opacity-70 group-hover:opacity-100 transition-opacity">
-                              {s.url.replace(/^https?:\/\//, "")}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </a>
-                  ))}
-                </div>
-              </section>
-            ))}
+
+                            <div className="min-h-0 flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
+                                  {s.name}
+                                </h3>
+                                {s.auth_required && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] h-4 py-0 px-1 border-primary/20 text-primary bg-primary/5"
+                                  >
+                                    Auth
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate opacity-70 group-hover:opacity-100 transition-opacity">
+                                {s.url.replace(/^https?:\/\//, "")}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.a>
+                    ))}
+                  </motion.div>
+                </motion.section>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
     </div>
   );
 }
+

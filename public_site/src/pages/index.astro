@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import AnimatedCard from '../components/AnimatedCard';
 
 const features = [
   {
@@ -100,11 +101,7 @@ const features = [
 					</div>
 					<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
 						{features.map((feature) => (
-							<div class="bg-background p-8 rounded-2xl border border-border hover:shadow-xl hover:-translate-y-1 transition-all">
-								<div class="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6" set:html={feature.icon} />
-								<h3 class="text-xl font-bold mb-3">{feature.title}</h3>
-								<p class="text-muted-foreground leading-relaxed">{feature.description}</p>
-							</div>
+							<AnimatedCard client:visible title={feature.title} description={feature.description} icon={feature.icon} />
 						))}
 					</div>
 				</div>
@@ -143,9 +140,9 @@ const features = [
 									<div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
 								</div>
 								<div class="text-zinc-400 space-y-2">
-									<p><span class="text-primary">$</span> git clone https://github.com/kieranholroyd/nexus</p>
-									<p><span class="text-primary">$</span> cd nexus</p>
-									<p><span class="text-primary">$</span> docker-compose up -d</p>
+									<p><span class="text-emerald-400">$</span> git clone https://github.com/kieranholroyd/nexus</p>
+									<p><span class="text-emerald-400">$</span> cd nexus</p>
+									<p><span class="text-emerald-400">$</span> docker-compose up -d</p>
 									<p class="pt-4 text-zinc-500"># Initializing backend...</p>
 									<p class="text-zinc-500"># Building frontend...</p>
 									<p class="text-green-400">✓ Nexus is running at http://localhost:8080</p>
@@ -176,4 +173,3 @@ const features = [
 		</footer>
 	</body>
 </html>
-

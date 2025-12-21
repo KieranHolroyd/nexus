@@ -8,8 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Server, Edit2, MoreVertical } from "lucide-react";
+import { Server, Edit2, MoreVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface Service {
   id: string;
@@ -40,17 +41,99 @@ export function ServiceCard({
   onDelete,
 }: ServiceCardProps) {
   return (
-    <Card className={"p-0" + cn(isSelected && " border-primary")}>
-      <CardContent
-        className={cn(
-          "p-4",
-          viewMode === "list" && "flex items-center gap-4 p-3",
-        )}
-      >
-        {viewMode === "grid" && (
-          <div className="space-y-2">
-            <div className="flex justify-between items-start">
-              <div className="size-12 rounded border flex items-center justify-center relative overflow-hidden bg-muted group/logo">
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      whileHover={{ y: viewMode === "grid" ? -4 : 0, x: viewMode === "list" ? 4 : 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Card className={cn("p-0 transition-colors", isSelected && "border-primary bg-primary/5")}>
+        <CardContent
+          className={cn(
+            "p-4",
+            viewMode === "list" && "flex items-center gap-4 p-3",
+          )}
+        >
+          {viewMode === "grid" && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-start">
+                <div className="size-12 rounded-xl border flex items-center justify-center relative overflow-hidden bg-muted group/logo">
+                  {s.icon && (
+                    <div
+                      className="absolute inset-0 opacity-20 blur-md scale-150 transition-transform group-hover/logo:scale-[2]"
+                      style={{
+                        backgroundImage: `url(${s.icon})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    />
+                  )}
+                  {s.icon ? (
+                    <img
+                      src={s.icon}
+                      alt={s.name}
+                      className="relative z-10 max-w-[70%] max-h-[70%] object-contain drop-shadow-sm"
+                    />
+                  ) : (
+                    <Server
+                      size={24}
+                      className="relative z-10 text-muted-foreground"
+                    />
+                  )}
+                </div>
+                <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} className="rounded-md" />
+              </div>
+
+              <div>
+                <h3 className="font-bold truncate text-foreground">{s.name}</h3>
+                <p className="text-xs text-muted-foreground truncate opacity-70">{s.url}</p>
+              </div>
+
+              <div className="flex gap-2">
+                {s.public && <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">Public</Badge>}
+                {s.auth_required && <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Secured</Badge>}
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t">
+                <Button
+                  className="flex-1 rounded-lg"
+                  variant="outline"
+                  size="sm"
+                  onClick={onEdit}
+                >
+                  <Edit2 size={14} className="mr-2" /> Edit
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg">
+                      <MoreVertical size={14} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-xl">
+                    <DropdownMenuItem
+                      onClick={() => window.open(s.url, "_blank")}
+                      className="cursor-pointer"
+                    >
+                      Launch Service
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive cursor-pointer"
+                      onClick={onDelete}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          )}
+
+          {viewMode === "list" && (
+            <div className="flex items-center gap-4 w-full">
+              <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} className="rounded-md" />
+              <div className="size-10 rounded-lg border flex items-center justify-center relative overflow-hidden bg-muted group/logo">
                 {s.icon && (
                   <div
                     className="absolute inset-0 opacity-20 blur-md scale-150 transition-transform group-hover/logo:scale-[2]"
@@ -69,125 +152,53 @@ export function ServiceCard({
                   />
                 ) : (
                   <Server
-                    size={24}
+                    size={18}
                     className="relative z-10 text-muted-foreground"
                   />
                 )}
               </div>
-              <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} />
-            </div>
 
-            <div>
-              <h3 className="font-bold truncate">{s.name}</h3>
-              <p className="text-xs text-muted-foreground truncate">{s.url}</p>
-            </div>
-
-            <div className="flex gap-2">
-              {s.public && <Badge variant="outline">Public</Badge>}
-              {s.auth_required && <Badge variant="outline">Secured</Badge>}
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                variant="outline"
-                size="sm"
-                onClick={onEdit}
-              >
-                <Edit2 size={14} className="mr-1" /> Edit
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-8 w-8">
-                    <MoreVertical size={14} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => window.open(s.url, "_blank")}
-                  >
-                    Launch
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={onDelete}
-                  >
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        )}
-
-        {viewMode === "list" && (
-          <div className="flex items-center gap-4 w-full">
-            <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} />
-            <div className="size-10 rounded border flex items-center justify-center relative overflow-hidden bg-muted group/logo">
-              {s.icon && (
-                <div
-                  className="absolute inset-0 opacity-20 blur-md scale-150 transition-transform group-hover/logo:scale-[2]"
-                  style={{
-                    backgroundImage: `url(${s.icon})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                />
-              )}
-              {s.icon ? (
-                <img
-                  src={s.icon}
-                  alt={s.name}
-                  className="relative z-10 max-w-[70%] max-h-[70%] object-contain drop-shadow-sm"
-                />
-              ) : (
-                <Server
-                  size={18}
-                  className="relative z-10 text-muted-foreground"
-                />
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="font-bold truncate">{s.name}</div>
-              <div className="text-xs text-muted-foreground truncate">
-                {s.url}
+              <div className="flex-1 min-w-0">
+                <div className="font-bold truncate text-foreground">{s.name}</div>
+                <div className="text-xs text-muted-foreground truncate opacity-70">
+                  {s.url}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="hidden md:flex gap-2">
+                  {s.public && (
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+                      Public
+                    </Badge>
+                  )}
+                  {s.auth_required && (
+                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                      Secured
+                    </Badge>
+                  )}
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 rounded-lg"
+                  onClick={onEdit}
+                >
+                  <Edit2 size={14} />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={onDelete}
+                >
+                  <Trash2 size={14} />
+                </Button>
               </div>
             </div>
-            <div className="flex gap-2">
-              {s.public && (
-                <Badge variant="outline" className="hidden sm:inline-flex">
-                  Public
-                </Badge>
-              )}
-              {s.auth_required && (
-                <Badge variant="outline" className="hidden sm:inline-flex">
-                  Secured
-                </Badge>
-              )}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8"
-                onClick={onEdit}
-              >
-                <Edit2 size={14} />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-destructive"
-                onClick={onDelete}
-              >
-                <Trash2 size={14} />
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
-// Re-using Trash2 from lucide-react in the list mode
-import { Trash2 } from "lucide-react";

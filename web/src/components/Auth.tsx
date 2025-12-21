@@ -18,6 +18,7 @@ import {
 } from "@simplewebauthn/browser";
 import { ModeToggle } from "./ModeToggle";
 import { Server, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AuthProps {
   onLogin: (user: any) => void;
@@ -26,6 +27,7 @@ interface AuthProps {
 export function Auth({ onLogin }: AuthProps) {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
 
   const handleRegister = async () => {
     if (!username) {
@@ -71,72 +73,112 @@ export function Auth({ onLogin }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="px-4 md:px-8 flex justify-between items-center bg-background border-b h-14">
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
+      <motion.header
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="px-4 md:px-8 flex justify-between items-center bg-background border-b h-14 z-10"
+      >
         <div className="flex items-center gap-2">
           <Server className="h-6 w-6 text-primary" />
-          <span className="font-bold text-xl">Nexus</span>
+          <span className="font-bold text-xl tracking-tighter">Nexus</span>
         </div>
         <ModeToggle />
-      </header>
+      </motion.header>
 
-      <div className="flex-1 flex items-center justify-center p-6">
-        <Card className="w-full max-w-[400px]">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-            <CardDescription>
-              Enter your username to access your dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="login" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
+      <div className="flex-1 flex items-center justify-center p-6 relative">
+        <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" />
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    placeholder="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </div>
-
-                <TabsContent value="login">
-                  <Button
-                    className="w-full"
-                    onClick={handleLogin}
-                    disabled={loading}
-                  >
-                    {loading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Login with Passkey
-                  </Button>
-                </TabsContent>
-
-                <TabsContent value="register">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleRegister}
-                    disabled={loading}
-                  >
-                    {loading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Register Passkey
-                  </Button>
-                </TabsContent>
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", damping: 20, stiffness: 100 }}
+        >
+          <Card className="w-full max-w-[400px] shadow-2xl border-primary/10">
+            <CardHeader className="text-center">
+              <div className="mx-auto bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-4">
+                <Server className="text-primary h-6 w-6" />
               </div>
-            </Tabs>
-          </CardContent>
-        </Card>
+              <CardTitle className="text-3xl font-black tracking-tight">Welcome</CardTitle>
+              <CardDescription className="text-base">
+                Your secure portal to the digital ether.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="space-y-6"
+              >
+                <TabsList className="grid w-full grid-cols-2 rounded-xl p-1 bg-muted/50">
+                  <TabsTrigger value="login" className="rounded-lg font-bold">Login</TabsTrigger>
+                  <TabsTrigger value="register" className="rounded-lg font-bold">Register</TabsTrigger>
+                </TabsList>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-sm font-bold ml-1">Username</Label>
+                    <Input
+                      id="username"
+                      placeholder="e.g. kieran"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="h-12 rounded-xl border-muted-foreground/20 focus-visible:ring-primary shadow-sm"
+                    />
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    {activeTab === "login" ? (
+                      <motion.div
+                        key="login"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Button
+                          className="w-full h-12 rounded-xl text-base font-bold shadow-lg shadow-primary/20"
+                          onClick={handleLogin}
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          ) : (
+                            "Authenticate with Passkey"
+                          )}
+                        </Button>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="register"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Button
+                          variant="outline"
+                          className="w-full h-12 rounded-xl text-base font-bold border-2 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all"
+                          onClick={handleRegister}
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          ) : (
+                            "Initialize Identity Profile"
+                          )}
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
 }
+
