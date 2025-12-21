@@ -144,16 +144,16 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
                     >
                       <Card
                         className={cn(
-                          "h-full transition-all duration-300 p-0 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 overflow-hidden",
+                          "h-full transition-all duration-300 p-0 hover:shadow-md hover:shadow-gray-800/5 hover:-translate-y-1 overflow-hidden",
                           viewMode === "list" &&
-                            "hover:translate-x-1 hover:-translate-y-0",
+                            "hover:translate-x-1 hover:translate-y-0 ",
                         )}
                       >
                         <CardContent
                           className={cn(
                             "p-5 h-auto flex flex-row gap-2 pb-0",
                             viewMode === "list" &&
-                              " flex items-center gap-6",
+                              "p-2 flex items-center gap-6",
                           )}
                         >
                           <div
