@@ -90,3 +90,4 @@ func LoginPasswordHandlers(w http.ResponseWriter, r *http.Request) {
 
 	jsonResponse(w, http.StatusOK, "Login successful")
 }
+
