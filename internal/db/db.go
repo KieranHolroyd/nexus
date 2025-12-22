@@ -51,7 +51,8 @@ func createTables() error {
 			id TEXT PRIMARY KEY,
 			username TEXT UNIQUE NOT NULL,
 			display_name TEXT,
-			approved BOOLEAN DEFAULT FALSE
+			approved BOOLEAN DEFAULT FALSE,
+			password_hash TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS credentials (
 			id BLOB PRIMARY KEY,
@@ -87,6 +88,7 @@ func createTables() error {
 	DB.Exec("ALTER TABLE services ADD COLUMN public BOOLEAN DEFAULT FALSE;")
 	DB.Exec("ALTER TABLE services ADD COLUMN auth_required BOOLEAN DEFAULT FALSE;")
 	DB.Exec("ALTER TABLE users ADD COLUMN approved BOOLEAN DEFAULT FALSE;")
+	DB.Exec("ALTER TABLE users ADD COLUMN password_hash TEXT;")
 	DB.Exec("UPDATE users SET approved = TRUE WHERE (SELECT COUNT(*) FROM users) = 1;") // Keep existing user approved if migration
 	DB.Exec("ALTER TABLE credentials ADD COLUMN backup_eligible BOOLEAN DEFAULT FALSE;")
 	DB.Exec("ALTER TABLE credentials ADD COLUMN backup_state BOOLEAN DEFAULT FALSE;")
@@ -96,8 +98,8 @@ func createTables() error {
 
 func GetUserByUsername(username string) (*models.User, error) {
 	var user models.User
-	err := DB.QueryRow("SELECT id, username, display_name, approved FROM users WHERE username = ?", username).
-		Scan(&user.ID, &user.Username, &user.DisplayName, &user.Approved)
+	err := DB.QueryRow("SELECT id, username, display_name, approved, password_hash FROM users WHERE username = ?", username).
+		Scan(&user.ID, &user.Username, &user.DisplayName, &user.Approved, &user.PasswordHash)
 	if err != nil {
 		return nil, err
 	}
@@ -120,12 +122,12 @@ func GetUserByUsername(username string) (*models.User, error) {
 }
 
 func CreateUser(user *models.User) error {
-	_, err := DB.Exec("INSERT INTO users (id, username, display_name, approved) VALUES (?, ?, ?, ?)", user.ID, user.Username, user.DisplayName, user.Approved)
+	_, err := DB.Exec("INSERT INTO users (id, username, display_name, approved, password_hash) VALUES (?, ?, ?, ?, ?)", user.ID, user.Username, user.DisplayName, user.Approved, user.PasswordHash)
 	return err
 }
 
 func GetUsers() ([]models.User, error) {
-	rows, err := DB.Query("SELECT id, username, display_name, approved FROM users")
+	rows, err := DB.Query("SELECT id, username, display_name, approved, password_hash FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +136,7 @@ func GetUsers() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Approved); err == nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Approved, &u.PasswordHash); err == nil {
 			users = append(users, u)
 		}
 	}

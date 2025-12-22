@@ -79,6 +79,8 @@ func main() {
 	r.Post("/api/auth/register/finish", auth.FinishRegistration)
 	r.Get("/api/auth/login/begin", auth.BeginLogin)
 	r.Post("/api/auth/login/finish", auth.FinishLogin)
+	r.Post("/api/auth/register/password", auth.RegisterPasswordHandlers)
+	r.Post("/api/auth/login/password", auth.LoginPasswordHandlers)
 	
 	api.RegisterServiceHandlers(r)
 	api.RegisterUserHandlers(r)

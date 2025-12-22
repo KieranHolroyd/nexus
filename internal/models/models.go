@@ -5,11 +5,12 @@ import (
 )
 
 type User struct {
-    ID          string `json:"id"`
-    Username    string `json:"username"`
-    DisplayName string `json:"display_name"`
-    Approved    bool   `json:"approved"`
-    Credentials []webauthn.Credential `json:"-"`
+    ID           string `json:"id"`
+    Username     string `json:"username"`
+    DisplayName  string `json:"display_name"`
+    Approved     bool   `json:"approved"`
+    PasswordHash string `json:"-"`
+    Credentials  []webauthn.Credential `json:"-"`
 }
 
 func (u *User) WebAuthnID() []byte {

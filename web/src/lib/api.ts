@@ -4,7 +4,7 @@ export async function beginRegistration(username: string) {
   return res.json();
 }
 
-export async function finishRegistration(username: string, data: any) {
+export async function finishRegistration(username: string, data: unknown) {
   const res = await fetch(`/api/auth/register/finish?username=${username}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -20,11 +20,31 @@ export async function beginLogin(username: string) {
   return res.json();
 }
 
-export async function finishLogin(username: string, data: any) {
+export async function finishLogin(username: string, data: unknown) {
   const res = await fetch(`/api/auth/login/finish?username=${username}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function loginWithPassword(username: string, password: string) {
+  const res = await fetch("/api/auth/login/password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function registerWithPassword(username: string, password: string) {
+  const res = await fetch("/api/auth/register/password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
