@@ -9,17 +9,18 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/nexus-homelab/nexus/internal/models"
 	_ "github.com/go-sql-driver/mysql"
+	_ "modernc.org/sqlite"
 )
 
 var DB *sql.DB
 
-func InitDB(dsn string) error {
-	log.Printf("Connecting to MySQL database...")
+func InitDB(driver, dsn string) error {
+	log.Printf("Connecting to %s database...", driver)
 
 	var err error
-	// Retry connection as MySQL might take a moment to start in docker
+	// Retry connection as database might take a moment to start
 	for i := 0; i < 10; i++ {
-		DB, err = sql.Open("mysql", dsn)
+		DB, err = sql.Open(driver, dsn)
 		if err == nil {
 			err = DB.Ping()
 		}
@@ -39,7 +40,7 @@ func InitDB(dsn string) error {
 	DB.SetMaxIdleConns(25)
 	DB.SetConnMaxLifetime(5 * time.Minute)
 
-	if err := createTables(); err != nil {
+	if err := createTables(driver); err != nil {
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
 
@@ -47,38 +48,75 @@ func InitDB(dsn string) error {
 	return nil
 }
 
-func createTables() error {
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS users (
-			id VARCHAR(255) PRIMARY KEY,
-			username VARCHAR(255) UNIQUE NOT NULL,
-			display_name VARCHAR(255),
-			approved BOOLEAN DEFAULT FALSE,
-			password_hash VARCHAR(255)
-		);`,
-		`CREATE TABLE IF NOT EXISTS credentials (
-			id VARBINARY(255) PRIMARY KEY,
-			user_id VARCHAR(255) NOT NULL,
-			public_key BLOB NOT NULL,
-			attestation_type VARCHAR(255) NOT NULL,
-			aaguid VARBINARY(255) NOT NULL,
-			sign_count BIGINT NOT NULL,
-			clone_warning BOOLEAN NOT NULL,
-			backup_eligible BOOLEAN NOT NULL DEFAULT FALSE,
-			backup_state BOOLEAN NOT NULL DEFAULT FALSE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-		);`,
-		`CREATE TABLE IF NOT EXISTS services (
-			id VARCHAR(255) PRIMARY KEY,
-			name VARCHAR(255) NOT NULL,
-			url VARCHAR(255) NOT NULL,
-			icon VARCHAR(255),
-			` + "`group`" + ` VARCHAR(255),
-			` + "`order`" + ` INTEGER DEFAULT 0,
-			public BOOLEAN DEFAULT FALSE,
-			auth_required BOOLEAN DEFAULT FALSE,
-			new_tab BOOLEAN DEFAULT TRUE
-		);`,
+func createTables(driver string) error {
+	var queries []string
+	if driver == "mysql" {
+		queries = []string{
+			`CREATE TABLE IF NOT EXISTS users (
+				id VARCHAR(255) PRIMARY KEY,
+				username VARCHAR(255) UNIQUE NOT NULL,
+				display_name VARCHAR(255),
+				approved BOOLEAN DEFAULT FALSE,
+				password_hash VARCHAR(255)
+			);`,
+			`CREATE TABLE IF NOT EXISTS credentials (
+				id VARBINARY(255) PRIMARY KEY,
+				user_id VARCHAR(255) NOT NULL,
+				public_key BLOB NOT NULL,
+				attestation_type VARCHAR(255) NOT NULL,
+				aaguid VARBINARY(255) NOT NULL,
+				sign_count BIGINT NOT NULL,
+				clone_warning BOOLEAN NOT NULL,
+				backup_eligible BOOLEAN NOT NULL DEFAULT FALSE,
+				backup_state BOOLEAN NOT NULL DEFAULT FALSE,
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+			);`,
+			`CREATE TABLE IF NOT EXISTS services (
+				id VARCHAR(255) PRIMARY KEY,
+				name VARCHAR(255) NOT NULL,
+				url VARCHAR(255) NOT NULL,
+				icon VARCHAR(255),
+				` + "`group`" + ` VARCHAR(255),
+				` + "`order`" + ` INTEGER DEFAULT 0,
+				public BOOLEAN DEFAULT FALSE,
+				auth_required BOOLEAN DEFAULT FALSE,
+				new_tab BOOLEAN DEFAULT TRUE
+			);`,
+		}
+	} else {
+		// SQLite
+		queries = []string{
+			`CREATE TABLE IF NOT EXISTS users (
+				id TEXT PRIMARY KEY,
+				username TEXT UNIQUE NOT NULL,
+				display_name TEXT,
+				approved BOOLEAN DEFAULT FALSE,
+				password_hash TEXT
+			);`,
+			`CREATE TABLE IF NOT EXISTS credentials (
+				id BLOB PRIMARY KEY,
+				user_id TEXT NOT NULL,
+				public_key BLOB NOT NULL,
+				attestation_type TEXT NOT NULL,
+				aaguid BLOB NOT NULL,
+				sign_count INTEGER NOT NULL,
+				clone_warning BOOLEAN NOT NULL,
+				backup_eligible BOOLEAN NOT NULL DEFAULT FALSE,
+				backup_state BOOLEAN NOT NULL DEFAULT FALSE,
+				FOREIGN KEY (user_id) REFERENCES users(id)
+			);`,
+			`CREATE TABLE IF NOT EXISTS services (
+				id TEXT PRIMARY KEY,
+				name TEXT NOT NULL,
+				url TEXT NOT NULL,
+				icon TEXT,
+				"group" TEXT,
+				"order" INTEGER DEFAULT 0,
+				public BOOLEAN DEFAULT FALSE,
+				auth_required BOOLEAN DEFAULT FALSE,
+				new_tab BOOLEAN DEFAULT TRUE
+			);`,
+		}
 	}
 
 	for _, q := range queries {
@@ -175,6 +213,7 @@ func SaveCredential(userID string, cred *webauthn.Credential) error {
 }
 
 func GetServices() ([]models.Service, error) {
+	// Use backticks for MySQL compatibility, SQLite also supports them
 	rows, err := DB.Query("SELECT id, name, url, icon, `group`, `order`, public, auth_required, new_tab FROM services ORDER BY `order` ASC")
 	if err != nil {
 		return nil, err

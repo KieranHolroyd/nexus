@@ -11,12 +11,22 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-pnexus_root_password",
+        ]
       timeout: 20s
       retries: 10
 
   nexus:
-    image: ghcr.io/nitrexdesign/nexus:sha-6f23ebb
+    build: .
     ports:
       - "8080:8080"
     volumes:

@@ -46,9 +46,9 @@ func main() {
 		}
 		services = fetchFromAPI(target)
 	} else if strings.Contains(target, "@tcp(") {
-		services = readFromMySQL(target)
+		services = readFromDB("mysql", target)
 	} else {
-		services = readFromSQLite(target)
+		services = readFromDB("sqlite", target)
 	}
 
 	output, err := json.MarshalIndent(services, "", "  ")
@@ -98,40 +98,15 @@ func fetchFromAPI(baseURL string) []Service {
 	return filtered
 }
 
-func readFromSQLite(dbPath string) []Service {
-	fmt.Fprintf(os.Stderr, "Reading services from SQLite database %s...\n", dbPath)
-	db, err := sql.Open("sqlite", dbPath)
+func readFromDB(driver, dsn string) []Service {
+	fmt.Fprintf(os.Stderr, "Reading services from %s database...\n", driver)
+	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT name, url, icon, `group`, `order`, public, auth_required, new_tab FROM services ORDER BY `order` ASC")
-	if err != nil {
-		log.Fatalf("Failed to query services: %v", err)
-	}
-	defer rows.Close()
-
-	services := []Service{}
-	for rows.Next() {
-		var s Service
-		err := rows.Scan(&s.Name, &s.URL, &s.Icon, &s.Group, &s.Order, &s.Public, &s.AuthRequired, &s.NewTab)
-		if err != nil {
-			log.Fatalf("Failed to scan row: %v", err)
-		}
-		services = append(services, s)
-	}
-	return services
-}
-
-func readFromMySQL(dsn string) []Service {
-	fmt.Fprintf(os.Stderr, "Reading services from MySQL database...\n")
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
-	}
-	defer db.Close()
-
+	// Use backticks for MySQL compatibility, SQLite also supports them
 	rows, err := db.Query("SELECT name, url, icon, `group`, `order`, public, auth_required, new_tab FROM services ORDER BY `order` ASC")
 	if err != nil {
 		log.Fatalf("Failed to query services: %v", err)
