@@ -23,6 +23,8 @@ interface Service {
   public: boolean;
   auth_required: boolean;
   new_tab: boolean;
+  health_status?: string;
+  last_checked?: string;
 }
 
 interface ServiceCardProps {
@@ -96,6 +98,17 @@ export function ServiceCard({
               <div className="flex gap-2">
                 {s.public && <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">Public</Badge>}
                 {s.auth_required && <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Secured</Badge>}
+                <Badge 
+                  variant="secondary" 
+                  className={cn(
+                    "border-transparent",
+                    s.health_status === "online" ? "bg-green-500/10 text-green-600 border-green-500/20" : 
+                    s.health_status === "offline" ? "bg-red-500/10 text-red-600 border-red-500/20" : 
+                    "bg-neutral-500/10 text-neutral-600 border-neutral-500/20"
+                  )}
+                >
+                  {s.health_status || "Unknown"}
+                </Badge>
               </div>
 
               <div className="flex gap-2 pt-2 border-t">
@@ -166,7 +179,7 @@ export function ServiceCard({
                   {s.url}
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 items-center">
                 <div className="hidden md:flex gap-2">
                   {s.public && (
                     <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
@@ -179,6 +192,15 @@ export function ServiceCard({
                     </Badge>
                   )}
                 </div>
+                <div 
+                  className={cn(
+                    "size-2.5 rounded-full",
+                    s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
+                    s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
+                    "bg-neutral-300 dark:bg-neutral-700"
+                  )}
+                  title={s.health_status ? `Status: ${s.health_status}` : "Status: unknown"}
+                />
                 <Button
                   size="icon"
                   variant="ghost"

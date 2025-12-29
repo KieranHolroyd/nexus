@@ -11,22 +11,31 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-pnexus_root_password",
-        ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pnexus_root_password"]
       timeout: 20s
       retries: 10
 
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8081:8080"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   nexus:
-    build: .
+    image: ghcr.io/kieranholroyd/nexus:master
     ports:
       - "8080:8080"
     volumes:
@@ -39,13 +48,19 @@ services:
       - DB_NAME=nexus
       - DB_USER=nexus_user
       - DB_PASSWORD=nexus_password
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_DB=nexus
       - WEBAUTHN_RP_NAME=Nexus
       - WEBAUTHN_RP_ID=start.holroydnet.uk
       - WEBAUTHN_RP_ORIGIN=https://start.holroydnet.uk
     depends_on:
       mysql:
         condition: service_healthy
+      clickhouse:
+        condition: service_healthy
 
 volumes:
   nexus-data:
   mysql-data:
+  clickhouse-data:

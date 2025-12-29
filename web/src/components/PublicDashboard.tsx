@@ -23,6 +23,8 @@ interface Service {
   public: boolean;
   auth_required: boolean;
   new_tab: boolean;
+  health_status?: string;
+  last_checked?: string;
 }
 
 interface PublicDashboardProps {
@@ -239,9 +241,20 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-muted-foreground truncate opacity-70 group-hover:opacity-100 transition-opacity">
-                                {s.url.replace(/^https?:\/\//, "")}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-muted-foreground truncate opacity-70 group-hover:opacity-100 transition-opacity">
+                                  {s.url.replace(/^https?:\/\//, "")}
+                                </p>
+                                <div 
+                                  className={cn(
+                                    "size-2 rounded-full",
+                                    s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
+                                    s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
+                                    "bg-neutral-300 dark:bg-neutral-700"
+                                  )} 
+                                  title={s.health_status ? `Status: ${s.health_status}` : "Status: unknown"}
+                                />
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

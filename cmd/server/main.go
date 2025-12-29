@@ -5,14 +5,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
+
+	"path"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/nexus-homelab/nexus/internal/api"
 	"github.com/nexus-homelab/nexus/internal/auth"
 	"github.com/nexus-homelab/nexus/internal/db"
-	"path"
-	"strings"
+	"github.com/nexus-homelab/nexus/internal/health"
 )
 
 func FileServer(r chi.Router, path string, root http.FileSystem) {
@@ -28,7 +31,7 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		
+
 		// If requesting something that looks like an API, don't fallback
 		if strings.HasPrefix(r.URL.Path, "/api") {
 			http.NotFound(w, r)
@@ -36,7 +39,7 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 		}
 
 		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
-		
+
 		// Check if file exists
 		f, err := root.Open(strings.TrimPrefix(r.URL.Path, pathPrefix))
 		if err != nil {
@@ -70,13 +73,19 @@ func main() {
 		if dbPath == "" {
 			dbPath = "data/nexus.db"
 		}
-		dsn = dbPath 
+		dsn = dbPath
 		log.Printf("Warning: Using SQLite at %s. MySQL is recommended.", dsn)
 	}
 
 	if err := db.InitDB(driver, dsn); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
+
+	if err := db.InitClickHouse(); err != nil {
+		log.Printf("Warning: Failed to initialize ClickHouse: %v", err)
+	}
+
+	health.StartHealthChecker(5 * time.Minute)
 
 	if err := auth.InitWebAuthn(); err != nil {
 		log.Fatalf("Failed to initialize WebAuthn: %v", err)
@@ -98,7 +107,7 @@ func main() {
 	r.Post("/api/auth/login/finish", auth.FinishLogin)
 	r.Post("/api/auth/register/password", auth.RegisterPasswordHandlers)
 	r.Post("/api/auth/login/password", auth.LoginPasswordHandlers)
-	
+
 	api.RegisterServiceHandlers(r)
 	api.RegisterUserHandlers(r)
 

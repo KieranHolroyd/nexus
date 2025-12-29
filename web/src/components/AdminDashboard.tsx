@@ -61,6 +61,8 @@ interface Service {
   public: boolean;
   auth_required: boolean;
   new_tab: boolean;
+  health_status?: string;
+  last_checked?: string;
 }
 
 interface User {

@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/nexus-homelab/nexus/internal/models"
-	_ "github.com/go-sql-driver/mysql"
 	_ "modernc.org/sqlite"
 )
 
@@ -80,7 +80,9 @@ func createTables(driver string) error {
 				` + "`order`" + ` INTEGER DEFAULT 0,
 				public BOOLEAN DEFAULT FALSE,
 				auth_required BOOLEAN DEFAULT FALSE,
-				new_tab BOOLEAN DEFAULT TRUE
+				new_tab BOOLEAN DEFAULT TRUE,
+				health_status VARCHAR(50) DEFAULT 'unknown',
+				last_checked TIMESTAMP
 			);`,
 		}
 	} else {
@@ -114,7 +116,9 @@ func createTables(driver string) error {
 				"order" INTEGER DEFAULT 0,
 				public BOOLEAN DEFAULT FALSE,
 				auth_required BOOLEAN DEFAULT FALSE,
-				new_tab BOOLEAN DEFAULT TRUE
+				new_tab BOOLEAN DEFAULT TRUE,
+				health_status TEXT DEFAULT 'unknown',
+				last_checked DATETIME
 			);`,
 		}
 	}
@@ -123,6 +127,15 @@ func createTables(driver string) error {
 		if _, err := DB.Exec(q); err != nil {
 			return err
 		}
+	}
+
+	// Migrations for existing tables
+	if driver == "mysql" {
+		DB.Exec("ALTER TABLE services ADD COLUMN health_status VARCHAR(50) DEFAULT 'unknown'")
+		DB.Exec("ALTER TABLE services ADD COLUMN last_checked TIMESTAMP")
+	} else {
+		DB.Exec("ALTER TABLE services ADD COLUMN health_status TEXT DEFAULT 'unknown'")
+		DB.Exec("ALTER TABLE services ADD COLUMN last_checked DATETIME")
 	}
 
 	return nil
@@ -214,7 +227,7 @@ func SaveCredential(userID string, cred *webauthn.Credential) error {
 
 func GetServices() ([]models.Service, error) {
 	// Use backticks for MySQL compatibility, SQLite also supports them
-	rows, err := DB.Query("SELECT id, name, url, icon, `group`, `order`, public, auth_required, new_tab FROM services ORDER BY `order` ASC")
+	rows, err := DB.Query("SELECT id, name, url, icon, `group`, `order`, public, auth_required, new_tab, health_status, last_checked FROM services ORDER BY `order` ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +236,11 @@ func GetServices() ([]models.Service, error) {
 	var services []models.Service
 	for rows.Next() {
 		var s models.Service
-		if err := rows.Scan(&s.ID, &s.Name, &s.URL, &s.Icon, &s.Group, &s.Order, &s.Public, &s.AuthRequired, &s.NewTab); err == nil {
+		var lastChecked sql.NullTime
+		if err := rows.Scan(&s.ID, &s.Name, &s.URL, &s.Icon, &s.Group, &s.Order, &s.Public, &s.AuthRequired, &s.NewTab, &s.HealthStatus, &lastChecked); err == nil {
+			if lastChecked.Valid {
+				s.LastChecked = lastChecked.Time
+			}
 			services = append(services, s)
 		}
 	}
@@ -231,14 +248,19 @@ func GetServices() ([]models.Service, error) {
 }
 
 func CreateService(s *models.Service) error {
-	_, err := DB.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab)
+	_, err := DB.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab, health_status, last_checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.HealthStatus, s.LastChecked)
 	return err
 }
 
 func UpdateService(s *models.Service) error {
-	_, err := DB.Exec("UPDATE services SET name=?, url=?, icon=?, `group`=?, `order`=?, public=?, auth_required=?, new_tab=? WHERE id=?",
-		s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.ID)
+	_, err := DB.Exec("UPDATE services SET name=?, url=?, icon=?, `group`=?, `order`=?, public=?, auth_required=?, new_tab=?, health_status=?, last_checked=? WHERE id=?",
+		s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.HealthStatus, s.LastChecked, s.ID)
+	return err
+}
+
+func UpdateServiceHealth(id string, status string, lastChecked time.Time) error {
+	_, err := DB.Exec("UPDATE services SET health_status=?, last_checked=? WHERE id=?", status, lastChecked, id)
 	return err
 }
 
@@ -280,8 +302,8 @@ func BulkCreateServices(services []models.Service) error {
 		if s.ID == "" {
 			s.ID = models.NewID()
 		}
-		_, err := tx.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab)
+		_, err := tx.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab, health_status, last_checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.HealthStatus, s.LastChecked)
 		if err != nil {
 			return err
 		}

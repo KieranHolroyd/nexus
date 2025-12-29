@@ -1,15 +1,17 @@
 package models
 
 import (
+	"time"
+
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 type User struct {
-	ID           string `json:"id"`
-	Username     string `json:"username"`
-	DisplayName  string `json:"display_name"`
-	Approved     bool   `json:"approved"`
-	PasswordHash string `json:"-"`
+	ID           string                `json:"id"`
+	Username     string                `json:"username"`
+	DisplayName  string                `json:"display_name"`
+	Approved     bool                  `json:"approved"`
+	PasswordHash string                `json:"-"`
 	Credentials  []webauthn.Credential `json:"-"`
 }
 
@@ -34,13 +36,15 @@ func (u *User) WebAuthnCredentials() []webauthn.Credential {
 }
 
 type Service struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	URL          string `json:"url"`
-	Icon         string `json:"icon"`
-	Group        string `json:"group"`
-	Order        int    `json:"order"`
-	Public       bool   `json:"public"`
-	AuthRequired bool   `json:"auth_required"`
-	NewTab       bool   `json:"new_tab"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	URL          string    `json:"url"`
+	Icon         string    `json:"icon"`
+	Group        string    `json:"group"`
+	Order        int       `json:"order"`
+	Public       bool      `json:"public"`
+	AuthRequired bool      `json:"auth_required"`
+	NewTab       bool      `json:"new_tab"`
+	HealthStatus string    `json:"health_status"`
+	LastChecked  time.Time `json:"last_checked"`
 }
