@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense } from "react";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { FloatingNav } from "@/components/FloatingNav";
@@ -21,6 +21,7 @@ const queryClient = new QueryClient({
 const Auth = lazy(() => import("@/components/Auth").then(m => ({ default: m.Auth })));
 const PublicDashboard = lazy(() => import("@/components/PublicDashboard").then(m => ({ default: m.PublicDashboard })));
 const AdminDashboard = lazy(() => import("@/components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const StatusPage = lazy(() => import("@/components/StatusPage").then(m => ({ default: m.StatusPage })));
 
 const PageLoader = () => (
   <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -54,7 +55,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <HashRouter>
+        <BrowserRouter>
           <Navbar
             user={user}
             onLogout={handleLogout}
@@ -64,6 +65,7 @@ function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<PublicDashboard search={search} />} />
+              <Route path="/status" element={<StatusPage search={search} />} />
               <Route
                 path="/auth"
                 element={
@@ -84,7 +86,7 @@ function App() {
           </Suspense>
           <FloatingNav />
           <Toaster position="top-right" />
-        </HashRouter>
+        </BrowserRouter>
       </TooltipProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

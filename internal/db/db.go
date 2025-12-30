@@ -13,10 +13,36 @@ import (
 )
 
 var DB *sql.DB
+var dbDriver string
+
+type dbTask struct {
+	fn   func() error
+	done chan error
+}
+
+var taskQueue = make(chan dbTask, 500)
+
+func startWorker(driver string) {
+	for task := range taskQueue {
+		err := task.fn()
+		task.done <- err
+		if driver == "sqlite" {
+			// Add a small delay between writes to allow SQLite to breathe/sync
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+}
+
+func runTask(fn func() error) error {
+	done := make(chan error, 1)
+	taskQueue <- dbTask{fn: fn, done: done}
+	return <-done
+}
 
 func InitDB(driver, dsn string) error {
 	log.Printf("Connecting to %s database...", driver)
 
+	dbDriver = driver
 	var err error
 	// Retry connection as database might take a moment to start
 	for i := 0; i < 10; i++ {
@@ -29,6 +55,10 @@ func InitDB(driver, dsn string) error {
 		}
 		log.Printf("Failed to connect to database (attempt %d/10): %v", i+1, err)
 		time.Sleep(2 * time.Second)
+	}
+
+	if err == nil {
+		go startWorker(driver)
 	}
 
 	if err != nil {
@@ -188,8 +218,10 @@ func GetUserByUsername(username string) (*models.User, error) {
 }
 
 func CreateUser(user *models.User) error {
-	_, err := DB.Exec("INSERT INTO users (id, username, display_name, approved, password_hash) VALUES (?, ?, ?, ?, ?)", user.ID, user.Username, user.DisplayName, user.Approved, user.PasswordHash)
-	return err
+	return runTask(func() error {
+		_, err := DB.Exec("INSERT INTO users (id, username, display_name, approved, password_hash) VALUES (?, ?, ?, ?, ?)", user.ID, user.Username, user.DisplayName, user.Approved, user.PasswordHash)
+		return err
+	})
 }
 
 func GetUsers() ([]models.User, error) {
@@ -210,27 +242,31 @@ func GetUsers() ([]models.User, error) {
 }
 
 func UpdateUserApproval(id string, approved bool) error {
-	_, err := DB.Exec("UPDATE users SET approved = ? WHERE id = ?", approved, id)
-	return err
+	return runTask(func() error {
+		_, err := DB.Exec("UPDATE users SET approved = ? WHERE id = ?", approved, id)
+		return err
+	})
 }
 
 func DeleteUser(id string) error {
-	tx, err := DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	return runTask(func() error {
+		tx, err := DB.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
 
-	_, err = tx.Exec("DELETE FROM credentials WHERE user_id = ?", id)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec("DELETE FROM users WHERE id = ?", id)
-	if err != nil {
-		return err
-	}
+		_, err = tx.Exec("DELETE FROM credentials WHERE user_id = ?", id)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("DELETE FROM users WHERE id = ?", id)
+		if err != nil {
+			return err
+		}
 
-	return tx.Commit()
+		return tx.Commit()
+	})
 }
 
 func CountUsers() (int, error) {
@@ -240,10 +276,12 @@ func CountUsers() (int, error) {
 }
 
 func SaveCredential(userID string, cred *webauthn.Credential) error {
-	_, err := DB.Exec(`INSERT INTO credentials (id, user_id, public_key, attestation_type, aaguid, sign_count, clone_warning, backup_eligible, backup_state) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		cred.ID, userID, cred.PublicKey, cred.AttestationType, cred.Authenticator.AAGUID, cred.Authenticator.SignCount, cred.Authenticator.CloneWarning, cred.Flags.BackupEligible, cred.Flags.BackupState)
-	return err
+	return runTask(func() error {
+		_, err := DB.Exec(`INSERT INTO credentials (id, user_id, public_key, attestation_type, aaguid, sign_count, clone_warning, backup_eligible, backup_state) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			cred.ID, userID, cred.PublicKey, cred.AttestationType, cred.Authenticator.AAGUID, cred.Authenticator.SignCount, cred.Authenticator.CloneWarning, cred.Flags.BackupEligible, cred.Flags.BackupState)
+		return err
+	})
 }
 
 func GetServices() ([]models.Service, error) {
@@ -269,25 +307,33 @@ func GetServices() ([]models.Service, error) {
 }
 
 func CreateService(s *models.Service) error {
-	_, err := DB.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab, check_health, health_status, last_checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.CheckHealth, s.HealthStatus, toNullTime(s.LastChecked))
-	return err
+	return runTask(func() error {
+		_, err := DB.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab, check_health, health_status, last_checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.CheckHealth, s.HealthStatus, toNullTime(s.LastChecked))
+		return err
+	})
 }
 
 func UpdateService(s *models.Service) error {
-	_, err := DB.Exec("UPDATE services SET name=?, url=?, icon=?, `group`=?, `order`=?, public=?, auth_required=?, new_tab=?, check_health=?, health_status=?, last_checked=? WHERE id=?",
-		s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.CheckHealth, s.HealthStatus, toNullTime(s.LastChecked), s.ID)
-	return err
+	return runTask(func() error {
+		_, err := DB.Exec("UPDATE services SET name=?, url=?, icon=?, `group`=?, `order`=?, public=?, auth_required=?, new_tab=?, check_health=?, health_status=?, last_checked=? WHERE id=?",
+			s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.CheckHealth, s.HealthStatus, toNullTime(s.LastChecked), s.ID)
+		return err
+	})
 }
 
 func UpdateServiceHealth(id string, status string, lastChecked time.Time) error {
-	_, err := DB.Exec("UPDATE services SET health_status=?, last_checked=? WHERE id=?", status, toNullTime(lastChecked), id)
-	return err
+	return runTask(func() error {
+		_, err := DB.Exec("UPDATE services SET health_status=?, last_checked=? WHERE id=?", status, toNullTime(lastChecked), id)
+		return err
+	})
 }
 
 func DeleteService(id string) error {
-	_, err := DB.Exec("DELETE FROM services WHERE id = ?", id)
-	return err
+	return runTask(func() error {
+		_, err := DB.Exec("DELETE FROM services WHERE id = ?", id)
+		return err
+	})
 }
 
 func GetGroups() ([]string, error) {
@@ -308,29 +354,31 @@ func GetGroups() ([]string, error) {
 }
 
 func BulkCreateServices(services []models.Service) error {
-	tx, err := DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec("DELETE FROM services")
-	if err != nil {
-		return err
-	}
-
-	for _, s := range services {
-		if s.ID == "" {
-			s.ID = models.NewID()
-		}
-		_, err := tx.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab, check_health, health_status, last_checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.CheckHealth, s.HealthStatus, toNullTime(s.LastChecked))
+	return runTask(func() error {
+		tx, err := DB.Begin()
 		if err != nil {
 			return err
 		}
-	}
+		defer tx.Rollback()
 
-	return tx.Commit()
+		_, err = tx.Exec("DELETE FROM services")
+		if err != nil {
+			return err
+		}
+
+		for _, s := range services {
+			if s.ID == "" {
+				s.ID = models.NewID()
+			}
+			_, err := tx.Exec("INSERT INTO services (id, name, url, icon, `group`, `order`, public, auth_required, new_tab, check_health, health_status, last_checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				s.ID, s.Name, s.URL, s.Icon, s.Group, s.Order, s.Public, s.AuthRequired, s.NewTab, s.CheckHealth, s.HealthStatus, toNullTime(s.LastChecked))
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	})
 }
 
 func toNullTime(t time.Time) sql.NullTime {

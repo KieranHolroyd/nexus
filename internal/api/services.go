@@ -17,6 +17,7 @@ func RegisterServiceHandlers(r chi.Router) {
 	r.Post("/api/services/bulk", bulkImportServices)
 	r.Get("/api/groups", listGroups)
 	r.Get("/api/services/{id}/uptime", getServiceUptime)
+	r.Get("/api/uptime/bulk", getAllServicesUptime)
 
 	// Icon handlers
 	r.Get("/api/icons/search", searchIcons)
@@ -106,6 +107,15 @@ func getServiceUptime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonResponse(w, http.StatusOK, history)
+}
+
+func getAllServicesUptime(w http.ResponseWriter, r *http.Request) {
+	histories, err := db.GetAllUptimeHistory()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonResponse(w, http.StatusOK, histories)
 }
 
 func jsonResponse(w http.ResponseWriter, status int, data interface{}) {

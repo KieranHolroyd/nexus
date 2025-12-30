@@ -8,6 +8,8 @@ import {
   List as ListIcon,
   User,
   Settings,
+  ShieldCheck,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,15 @@ export function Navbar({
           </div>
           <span className="font-bold text-xl tracking-tight">Nexus</span>
         </Link>
+
+        <nav className="hidden md:flex items-center ml-8 gap-1">
+          <Button variant="ghost" asChild size="sm" className="font-bold">
+            <Link to="/status" className="flex items-center gap-2">
+              <ShieldCheck size={16} className="text-primary" />
+              Status
+            </Link>
+          </Button>
+        </nav>
 
         <div className="flex-1 max-w-md mx-6 hidden md:block">
           {onSearchChange !== undefined && (
@@ -116,6 +127,12 @@ export function Navbar({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/status" className="cursor-pointer">
+                    <Activity className="mr-2 h-4 w-4" />
+                    Status Board
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/admin" className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />

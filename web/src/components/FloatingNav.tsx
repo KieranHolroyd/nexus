@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Settings } from "lucide-react";
+import { Home, LayoutDashboard, Settings, Activity } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "./ModeToggle";
@@ -42,6 +42,7 @@ export function FloatingNav() {
 
   const navItems = [
     { label: "Public", icon: Home, path: "/" },
+    { label: "Status", icon: Activity, path: "/status" },
     { label: "Admin", icon: LayoutDashboard, path: "/admin" },
   ];
 

@@ -16,10 +16,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - nexus-network
 
   nexus:
-    # image: ghcr.io/kieranholroyd/nexus:master
-    build: .
+    image: ghcr.io/kieranholroyd/nexus:master
+    # build: .
     ports:
       - "8080:8080"
     volumes:
@@ -38,6 +40,12 @@ services:
     depends_on:
       clickhouse:
         condition: service_started
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    driver: bridge
 
 volumes:
   nexus-data:

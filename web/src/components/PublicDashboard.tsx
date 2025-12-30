@@ -254,7 +254,7 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
                                       <DialogTrigger asChild>
                                         <div 
                                           className={cn(
-                                            "size-2 rounded-full cursor-pointer hover:scale-150 transition-transform",
+                                            "size-3 rounded-full cursor-pointer hover:scale-125 transition-all ring-offset-background ring-2 ring-transparent hover:ring-primary/20",
                                             s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
                                             s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
                                             "bg-neutral-300 dark:bg-neutral-700"

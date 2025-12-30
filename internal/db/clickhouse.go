@@ -183,13 +183,15 @@ func createClickHouseTables() error {
 }
 
 func LogHealthCheck(serviceID, url, status string, latencyMs int64) error {
-	if CH == nil {
-		return nil
-	}
-	return CH.Exec(context.Background(), `
-		INSERT INTO health_checks (service_id, url, status, latency_ms, timestamp)
-		VALUES (?, ?, ?, ?, ?)
-	`, serviceID, url, status, latencyMs, time.Now())
+	return runTask(func() error {
+		if CH == nil {
+			return nil
+		}
+		return CH.Exec(context.Background(), `
+			INSERT INTO health_checks (service_id, url, status, latency_ms, timestamp)
+			VALUES (?, ?, ?, ?, ?)
+		`, serviceID, url, status, latencyMs, time.Now())
+	})
 }
 
 func GetUptimeHistory(serviceID string) (*models.UptimeHistory, error) {
@@ -238,4 +240,63 @@ func GetUptimeHistory(serviceID string) (*models.UptimeHistory, error) {
 	}
 
 	return history, nil
+}
+func GetAllUptimeHistory() (map[string]*models.UptimeHistory, error) {
+	if CH == nil {
+		return nil, nil
+	}
+
+	histories := make(map[string]*models.UptimeHistory)
+
+	// Helper to get or create history for a service
+	getHistory := func(serviceID string) *models.UptimeHistory {
+		if h, ok := histories[serviceID]; ok {
+			return h
+		}
+		h := &models.UptimeHistory{
+			ServiceID: serviceID,
+			Hourly:    make([]models.HealthPoint, 0),
+			Daily:     make([]models.HealthPoint, 0),
+		}
+		histories[serviceID] = h
+		return h
+	}
+
+	// Fetch hourly data for all services
+	rows, err := CH.Query(context.Background(), `
+		SELECT service_id, hour, up_count, down_count, avg_latency 
+		FROM health_history_hourly 
+		ORDER BY hour ASC
+	`)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var serviceID string
+			var p models.HealthPoint
+			if err := rows.Scan(&serviceID, &p.Timestamp, &p.UpCount, &p.DownCount, &p.Latency); err == nil {
+				h := getHistory(serviceID)
+				h.Hourly = append(h.Hourly, p)
+			}
+		}
+	}
+
+	// Fetch daily data for all services
+	rows, err = CH.Query(context.Background(), `
+		SELECT service_id, day, up_count, down_count, avg_latency 
+		FROM health_history_daily 
+		ORDER BY day ASC
+	`)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var serviceID string
+			var p models.HealthPoint
+			if err := rows.Scan(&serviceID, &p.Timestamp, &p.UpCount, &p.DownCount, &p.Latency); err == nil {
+				h := getHistory(serviceID)
+				h.Daily = append(h.Daily, p)
+			}
+		}
+	}
+
+	return histories, nil
 }
