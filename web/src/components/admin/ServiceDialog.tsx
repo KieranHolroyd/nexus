@@ -41,6 +41,7 @@ interface Service {
   public: boolean;
   auth_required: boolean;
   new_tab: boolean;
+  check_health: boolean;
 }
 
 interface ServiceDialogProps {
@@ -330,6 +331,24 @@ export function ServiceDialog({
                 </span>
               </div>
             </RadioGroup>
+          </div>
+
+          <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setFormData({ ...formData, check_health: !formData.check_health })}>
+            <Checkbox
+              id="check_health"
+              checked={formData.check_health !== false}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, check_health: checked === true })
+              }
+            />
+            <div className="flex-1 cursor-pointer">
+              <Label htmlFor="check_health" className="font-bold flex items-center gap-2 cursor-pointer text-sm">
+                Enable health checking
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Automatically monitor uptime and latency
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setFormData({ ...formData, new_tab: !formData.new_tab })}>

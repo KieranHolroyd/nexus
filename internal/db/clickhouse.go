@@ -45,7 +45,7 @@ func InitClickHouse() error {
 			Addr: []string{addr},
 			Protocol: clickhouse.HTTP, // Use Web (HTTP) driver
 			Auth: clickhouse.Auth{
-				Database: database,
+				Database: "default",
 				Username: user,
 				Password: pass,
 			},
@@ -81,10 +81,11 @@ func InitClickHouse() error {
 	conn.Close()
 	CH, err = clickhouse.Open(&clickhouse.Options{
 		Addr: []string{addr},
+		Protocol: clickhouse.HTTP,
 		Auth: clickhouse.Auth{
 			Database: database,
-			Username: "default",
-			Password: "",
+			Username: user,
+			Password: pass,
 		},
 		DialTimeout: 5 * time.Second,
 	})

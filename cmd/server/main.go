@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 	"github.com/nexus-homelab/nexus/internal/api"
 	"github.com/nexus-homelab/nexus/internal/auth"
 	"github.com/nexus-homelab/nexus/internal/db"
@@ -55,6 +56,10 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 }
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: No .env file found or error loading it: %v", err)
+	}
+
 	dbType := os.Getenv("DB_TYPE")
 	var dsn string
 	var driver string

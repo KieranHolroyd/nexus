@@ -62,6 +62,7 @@ interface Service {
   public: boolean;
   auth_required: boolean;
   new_tab: boolean;
+  check_health: boolean;
   health_status?: string;
   last_checked?: string;
 }
@@ -96,7 +97,8 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
     queryKey: ["services"],
     queryFn: async () => {
       const res = await apiFetch("/api/services");
-      return res.json();
+      const data = await res.json();
+      return data || [];
     },
   });
 
@@ -104,7 +106,8 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
     queryKey: ["groups"],
     queryFn: async () => {
       const res = await apiFetch("/api/groups");
-      return res.json();
+      const data = await res.json();
+      return data || [];
     },
   });
 
@@ -113,7 +116,8 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
     queryFn: async () => {
       const res = await apiFetch("/api/users");
       if (!res.ok) throw new Error("Failed to fetch users");
-      return res.json();
+      const data = await res.json();
+      return data || [];
     },
   });
 
@@ -243,11 +247,11 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
     reader.readAsText(file);
   };
 
-  const filteredServices = services.filter((s) => {
+  const filteredServices = (services || []).filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.url.toLowerCase().includes(search.toLowerCase()) ||
-      s.group.toLowerCase().includes(search.toLowerCase());
+      (s.group || "").toLowerCase().includes(search.toLowerCase());
     const matchesGroup = filterGroup === "all" || s.group === filterGroup;
     return matchesSearch && matchesGroup;
   });

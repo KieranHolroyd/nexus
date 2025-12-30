@@ -45,6 +45,7 @@ type Service struct {
 	Public       bool      `json:"public"`
 	AuthRequired bool      `json:"auth_required"`
 	NewTab       bool      `json:"new_tab"`
+	CheckHealth  bool      `json:"check_health"`
 	HealthStatus string    `json:"health_status"`
 	LastChecked  time.Time `json:"last_checked"`
 }

@@ -25,6 +25,7 @@ interface Service {
   public: boolean;
   auth_required: boolean;
   new_tab: boolean;
+  check_health: boolean;
   health_status?: string;
   last_checked?: string;
 }
@@ -100,28 +101,30 @@ export function ServiceCard({
               <div className="flex gap-2">
                 {s.public && <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">Public</Badge>}
                 {s.auth_required && <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Secured</Badge>}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        "border-transparent cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors",
-                        s.health_status === "online" ? "bg-green-500/10 text-green-600 border-green-500/20" : 
-                        s.health_status === "offline" ? "bg-red-500/10 text-red-600 border-red-500/20" : 
-                        "bg-neutral-500/10 text-neutral-600 border-neutral-500/20"
-                      )}
-                    >
-                      {s.health_status || "Unknown"}
-                    </Badge>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px] rounded-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-black">{s.name} Uptime</DialogTitle>
-                      <DialogDescription>Historic performance for the last 30 days.</DialogDescription>
-                    </DialogHeader>
-                    <UptimeView serviceId={s.id} />
-                  </DialogContent>
-                </Dialog>
+                {s.check_health && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "border-transparent cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors",
+                          s.health_status === "online" ? "bg-green-500/10 text-green-600 border-green-500/20" : 
+                          s.health_status === "offline" ? "bg-red-500/10 text-red-600 border-red-500/20" : 
+                          "bg-neutral-500/10 text-neutral-600 border-neutral-500/20"
+                        )}
+                      >
+                        {s.health_status || "Unknown"}
+                      </Badge>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px] rounded-3xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-black">{s.name} Uptime</DialogTitle>
+                        <DialogDescription>Historic performance for the last 30 days.</DialogDescription>
+                      </DialogHeader>
+                      <UptimeView serviceId={s.id} />
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2 border-t">
@@ -205,26 +208,28 @@ export function ServiceCard({
                     </Badge>
                   )}
                 </div>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <div 
-                      className={cn(
-                        "size-2.5 rounded-full cursor-pointer hover:scale-125 transition-transform",
-                        s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
-                        s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
-                        "bg-neutral-300 dark:bg-neutral-700"
-                      )}
-                      title={s.health_status ? `Status: ${s.health_status} (Click for history)` : "Status: unknown (Click for history)"}
-                    />
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px] rounded-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-black">{s.name} Uptime</DialogTitle>
-                      <DialogDescription>Historic performance for the last 30 days.</DialogDescription>
-                    </DialogHeader>
-                    <UptimeView serviceId={s.id} />
-                  </DialogContent>
-                </Dialog>
+                {s.check_health && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div 
+                        className={cn(
+                          "size-2.5 rounded-full cursor-pointer hover:scale-125 transition-transform",
+                          s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
+                          s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
+                          "bg-neutral-300 dark:bg-neutral-700"
+                        )}
+                        title={s.health_status ? `Status: ${s.health_status} (Click for history)` : "Status: unknown (Click for history)"}
+                      />
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px] rounded-3xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-black">{s.name} Uptime</DialogTitle>
+                        <DialogDescription>Historic performance for the last 30 days.</DialogDescription>
+                      </DialogHeader>
+                      <UptimeView serviceId={s.id} />
+                    </DialogContent>
+                  </Dialog>
+                )}
                 <Button
                   size="icon"
                   variant="ghost"

@@ -54,7 +54,9 @@ func checkAllServices() {
 	}
 
 	for _, s := range services {
-		jobChan <- healthJob{ID: s.ID, URL: s.URL}
+		if s.CheckHealth {
+			jobChan <- healthJob{ID: s.ID, URL: s.URL}
+		}
 	}
 }
 

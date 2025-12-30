@@ -41,3 +41,4 @@ data/icons/*
 *.njsproj
 *.sln
 *.sw?
+.env

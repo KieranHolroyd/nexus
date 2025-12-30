@@ -26,6 +26,7 @@ interface Service {
   public: boolean;
   auth_required: boolean;
   new_tab: boolean;
+  check_health: boolean;
   health_status?: string;
   last_checked?: string;
 }
@@ -242,36 +243,38 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
                                 <p className="text-sm text-muted-foreground truncate opacity-70 group-hover:opacity-100 transition-opacity">
                                   {s.url.replace(/^https?:\/\//, "")}
                                 </p>
-                                <div 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }}
-                                >
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <div 
-                                        className={cn(
-                                          "size-2 rounded-full cursor-pointer hover:scale-150 transition-transform",
-                                          s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
-                                          s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
-                                          "bg-neutral-300 dark:bg-neutral-700"
-                                        )} 
-                                        title={s.health_status ? `Status: ${s.health_status} (Click for history)` : "Status: unknown (Click for history)"}
-                                      />
-                                    </DialogTrigger>
-                                    <DialogContent 
-                                      className="sm:max-w-[425px] rounded-3xl"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <DialogHeader>
-                                        <DialogTitle className="text-2xl font-black">{s.name} Uptime</DialogTitle>
-                                        <DialogDescription>Historic performance for the last 30 days.</DialogDescription>
-                                      </DialogHeader>
-                                      <UptimeView serviceId={s.id} />
-                                    </DialogContent>
-                                  </Dialog>
-                                </div>
+                                {s.check_health && (
+                                  <div 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                  >
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <div 
+                                          className={cn(
+                                            "size-2 rounded-full cursor-pointer hover:scale-150 transition-transform",
+                                            s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
+                                            s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
+                                            "bg-neutral-300 dark:bg-neutral-700"
+                                          )} 
+                                          title={s.health_status ? `Status: ${s.health_status} (Click for history)` : "Status: unknown (Click for history)"}
+                                        />
+                                      </DialogTrigger>
+                                      <DialogContent 
+                                        className="sm:max-w-[425px] rounded-3xl"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <DialogHeader>
+                                          <DialogTitle className="text-2xl font-black">{s.name} Uptime</DialogTitle>
+                                          <DialogDescription>Historic performance for the last 30 days.</DialogDescription>
+                                        </DialogHeader>
+                                        <UptimeView serviceId={s.id} />
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </CardContent>
