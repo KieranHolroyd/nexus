@@ -48,3 +48,16 @@ type Service struct {
 	HealthStatus string    `json:"health_status"`
 	LastChecked  time.Time `json:"last_checked"`
 }
+
+type HealthPoint struct {
+	Timestamp time.Time `json:"timestamp"`
+	UpCount   uint64    `json:"up_count"`
+	DownCount uint64    `json:"down_count"`
+	Latency   float64   `json:"latency"`
+}
+
+type UptimeHistory struct {
+	ServiceID string        `json:"service_id"`
+	Hourly    []HealthPoint `json:"hourly"`
+	Daily     []HealthPoint `json:"daily"`
+}

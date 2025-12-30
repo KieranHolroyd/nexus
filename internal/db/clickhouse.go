@@ -182,3 +182,51 @@ func LogHealthCheck(serviceID, url, status string, latencyMs int64) error {
 		VALUES (?, ?, ?, ?, ?)
 	`, serviceID, url, status, latencyMs, time.Now())
 }
+
+func GetUptimeHistory(serviceID string) (*models.UptimeHistory, error) {
+	if CH == nil {
+		return nil, nil
+	}
+
+	history := &models.UptimeHistory{
+		ServiceID: serviceID,
+		Hourly:    make([]models.HealthPoint, 0),
+		Daily:     make([]models.HealthPoint, 0),
+	}
+
+	// Fetch hourly data for last 24 hours
+	rows, err := CH.Query(context.Background(), `
+		SELECT hour, up_count, down_count, avg_latency 
+		FROM health_history_hourly 
+		WHERE service_id = ? 
+		ORDER BY hour ASC
+	`, serviceID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var p models.HealthPoint
+			if err := rows.Scan(&p.Timestamp, &p.UpCount, &p.DownCount, &p.Latency); err == nil {
+				history.Hourly = append(history.Hourly, p)
+			}
+		}
+	}
+
+	// Fetch daily data for last 30 days
+	rows, err = CH.Query(context.Background(), `
+		SELECT day, up_count, down_count, avg_latency 
+		FROM health_history_daily 
+		WHERE service_id = ? 
+		ORDER BY day ASC
+	`, serviceID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var p models.HealthPoint
+			if err := rows.Scan(&p.Timestamp, &p.UpCount, &p.DownCount, &p.Latency); err == nil {
+				history.Daily = append(history.Daily, p)
+			}
+		}
+	}
+
+	return history, nil
+}

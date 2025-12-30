@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch, resolveUrl } from "@/lib/api-client";
+import { UptimeView } from "./UptimeView";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Service {
   id: string;
@@ -245,15 +247,33 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
                                 <p className="text-sm text-muted-foreground truncate opacity-70 group-hover:opacity-100 transition-opacity">
                                   {s.url.replace(/^https?:\/\//, "")}
                                 </p>
-                                <div 
-                                  className={cn(
-                                    "size-2 rounded-full",
-                                    s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
-                                    s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
-                                    "bg-neutral-300 dark:bg-neutral-700"
-                                  )} 
-                                  title={s.health_status ? `Status: ${s.health_status}` : "Status: unknown"}
-                                />
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <div 
+                                      className={cn(
+                                        "size-2 rounded-full cursor-pointer hover:scale-150 transition-transform",
+                                        s.health_status === "online" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : 
+                                        s.health_status === "offline" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : 
+                                        "bg-neutral-300 dark:bg-neutral-700"
+                                      )} 
+                                      title={s.health_status ? `Status: ${s.health_status} (Click for history)` : "Status: unknown (Click for history)"}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                    />
+                                  </DialogTrigger>
+                                  <DialogContent 
+                                    className="sm:max-w-[425px] rounded-3xl"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <DialogHeader>
+                                      <DialogTitle className="text-2xl font-black">{s.name} Uptime</DialogTitle>
+                                      <DialogDescription>Historic performance for the last 30 days.</DialogDescription>
+                                    </DialogHeader>
+                                    <UptimeView serviceId={s.id} />
+                                  </DialogContent>
+                                </Dialog>
                               </div>
                             </div>
                           </CardContent>
