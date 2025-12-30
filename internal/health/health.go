@@ -18,8 +18,14 @@ var jobChan = make(chan healthJob, 100)
 func StartHealthChecker(interval time.Duration) {
 	log.Printf("Starting health checker with interval %v", interval)
 	
+	// Determine worker count based on DB driver
+	workerCount := 5
+	if os.Getenv("DB_TYPE") != "mysql" {
+		workerCount = 1 // Strict sequential updates for SQLite
+	}
+
 	// Start worker pool
-	for i := 0; i < 5; i++ {
+	for i := 0; i < workerCount; i++ {
 		go healthWorker()
 	}
 

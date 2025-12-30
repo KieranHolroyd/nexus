@@ -29,6 +29,12 @@ func InitClickHouse() error {
 		database = "nexus"
 	}
 
+	user := os.Getenv("CLICKHOUSE_USER")
+	if user == "" {
+		user = "default"
+	}
+	pass := os.Getenv("CLICKHOUSE_PASSWORD")
+
 	addr := fmt.Sprintf("%s:%s", host, port)
 	var conn driver.Conn
 	var err error
@@ -38,9 +44,9 @@ func InitClickHouse() error {
 		conn, err = clickhouse.Open(&clickhouse.Options{
 			Addr: []string{addr},
 			Auth: clickhouse.Auth{
-				Database: "default",
-				Username: "default",
-				Password: "",
+				Database: database,
+				Username: user,
+				Password: pass,
 			},
 			Settings: clickhouse.Settings{
 				"max_execution_time": 60,

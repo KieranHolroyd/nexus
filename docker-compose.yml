@@ -1,35 +1,18 @@
 services:
-  mysql:
-    image: mysql:8.0
-    ports:
-      - "8767:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=nexus_root_password
-      - MYSQL_DATABASE=nexus
-      - MYSQL_USER=nexus_user
-      - MYSQL_PASSWORD=nexus_password
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pnexus_root_password"]
-      timeout: 20s
-      retries: 10
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - "8081:8080"
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     ports:
       - "8123:8123"
       - "9000:9000"
+    environment:
+      - CLICKHOUSE_USER=nexus
+      - CLICKHOUSE_PASSWORD=nexus_password
+      - CLICKHOUSE_DB=nexus
     volumes:
       - clickhouse-data:/var/lib/clickhouse
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ["CMD", "clickhouse-client", "-u", "nexus", "--password", "nexus_password", "--query", "SELECT 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -42,25 +25,19 @@ services:
       - nexus-data:/app/data
     environment:
       - PORT=8080
-      - DB_TYPE=mysql
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_NAME=nexus
-      - DB_USER=nexus_user
-      - DB_PASSWORD=nexus_password
+      - DB_TYPE=sqlite
       - CLICKHOUSE_HOST=clickhouse
       - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_USER=nexus
+      - CLICKHOUSE_PASSWORD=nexus_password
       - CLICKHOUSE_DB=nexus
       - WEBAUTHN_RP_NAME=Nexus
       - WEBAUTHN_RP_ID=start.holroydnet.uk
       - WEBAUTHN_RP_ORIGIN=https://start.holroydnet.uk
     depends_on:
-      mysql:
-        condition: service_healthy
       clickhouse:
         condition: service_started
 
 volumes:
   nexus-data:
-  mysql-data:
   clickhouse-data:
