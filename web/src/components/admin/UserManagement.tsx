@@ -4,6 +4,8 @@ import { Loader2, Users, UserMinus, UserCheck, Trash2, Check, Clock } from "luci
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 interface User {
   id: string;
   username: string;
@@ -14,38 +16,51 @@ interface User {
 interface UserManagementProps {
   users: User[];
   loading: boolean;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 export function UserManagement({
   users,
   loading,
-  onRefresh,
 }: UserManagementProps) {
-  const handleActionUser = async (id: string, approved: boolean) => {
-    const res = await apiFetch(`/api/users/${id}/approve`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ approved }),
-    });
-    if (res.ok) {
+  const queryClient = useQueryClient();
+
+  const actionMutation = useMutation({
+    mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
+      const res = await apiFetch(`/api/users/${id}/approve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved }),
+      });
+      if (!res.ok) throw new Error("Failed to update user");
+    },
+    onSuccess: (_, { approved }) => {
       toast.success(approved ? "User approved" : "User unapproved");
-      onRefresh();
-    } else {
-      toast.error("Failed to update user");
-    }
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: () => toast.error("Failed to update user"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiFetch(`/api/users/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete user");
+    },
+    onSuccess: () => {
+      toast.success("User deleted");
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: () => toast.error("Failed to delete user"),
+  });
+
+  const handleActionUser = (id: string, approved: boolean) => {
+    actionMutation.mutate({ id, approved });
   };
 
-  const handleDeleteUser = async (id: string) => {
+  const handleDeleteUser = (id: string) => {
     if (!confirm("Delete this user? All their credentials will be removed."))
       return;
-    const res = await apiFetch(`/api/users/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      toast.success("User deleted");
-      onRefresh();
-    } else {
-      toast.error("Failed to delete user");
-    }
+    deleteMutation.mutate(id);
   };
 
   if (loading) {

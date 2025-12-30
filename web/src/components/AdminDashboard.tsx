@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch } from "@/lib/api-client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // External components
 import { ServiceCard } from "./admin/ServiceCard";
@@ -77,11 +78,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ search }: AdminDashboardProps) {
-  const [services, setServices] = useState<Service[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [groups, setGroups] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("services");
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [formData, setFormData] = useState<Partial<Service>>({});
@@ -95,6 +92,92 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { data: services = [], isLoading: loading } = useQuery<Service[]>({
+    queryKey: ["services"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/services");
+      return res.json();
+    },
+  });
+
+  const { data: groups = [] } = useQuery<string[]>({
+    queryKey: ["groups"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/groups");
+      return res.json();
+    },
+  });
+
+  const { data: users = [], isLoading: usersLoading, refetch: refetchUsers } = useQuery<User[]>({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/users");
+      if (!res.ok) throw new Error("Failed to fetch users");
+      return res.json();
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async ({ id, data }: { id?: string; data: Partial<Service> }) => {
+      const method = id ? "PUT" : "POST";
+      const url = id ? `/api/services/${id}` : "/api/services";
+      const res = await apiFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to save service");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success(editing && editing !== "new" ? "Service updated" : "Service created");
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      setEditing(null);
+      setFormData({});
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiFetch(`/api/services/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete service");
+    },
+    onSuccess: () => {
+      toast.success("Service deleted");
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => apiFetch(`/api/services/${id}`, { method: "DELETE" })));
+    },
+    onSuccess: () => {
+      toast.success("Services deleted");
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+
+  const bulkImportMutation = useMutation({
+    mutationFn: async (data: any[]) => {
+      const res = await apiFetch("/api/services/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to import services");
+    },
+    onSuccess: () => {
+      toast.success("Import successful");
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+
   useEffect(() => {
     localStorage.setItem("admin_view_mode", viewMode);
   }, [viewMode]);
@@ -103,84 +186,18 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
     localStorage.setItem("admin_show_stats", showStats.toString());
   }, [showStats]);
 
-  const fetchServices = () => {
-    apiFetch("/api/services")
-      .then((res) => res.json())
-      .then((data) => setServices(data || []))
-      .finally(() => setLoading(false));
-  };
-
-  const fetchGroups = () => {
-    apiFetch("/api/groups")
-      .then((res) => res.json())
-      .then((data) => setGroups(data || []));
-  };
-
-  const fetchUsers = () => {
-    setUsersLoading(true);
-    apiFetch("/api/users")
-      .then((res) => res.json())
-      .then((data) => setUsers(data || []))
-      .catch(() => toast.error("Failed to fetch users"))
-      .finally(() => setUsersLoading(false));
-  };
-
-  useEffect(() => {
-    fetchServices();
-    fetchGroups();
-    fetchUsers();
-  }, []);
-
   const handleSave = async (id?: string) => {
-    const method = id ? "PUT" : "POST";
-    const url = id ? `/api/services/${id}` : "/api/services";
-    const res = await apiFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-    if (res.ok) {
-      const savedService = await res.json();
-      toast.success(id ? "Service updated" : "Service created");
-
-      setServices((prev) => {
-        const index = prev.findIndex((s) => s.id === (id || savedService.id));
-        if (index !== -1) {
-          const next = [...prev];
-          next[index] = savedService;
-          return next;
-        }
-        return [...prev, savedService];
-      });
-
-      setEditing(null);
-      setFormData({});
-      fetchGroups();
-    }
+    saveMutation.mutate({ id, data: formData });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure? This action cannot be undone.")) return;
-    const res = await apiFetch(`/api/services/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      toast.success("Service deleted");
-      setServices((prev) => prev.filter((s) => s.id !== id));
-      fetchGroups();
-    }
+    deleteMutation.mutate(id);
   };
 
   const handleBulkDelete = async () => {
     if (!confirm(`Delete ${selectedIds.size} services?`)) return;
-
-    const promises = Array.from(selectedIds).map((id) =>
-      apiFetch(`/api/services/${id}`, { method: "DELETE" }),
-    );
-
-    await Promise.all(promises);
-    toast.success("Services deleted");
-    setSelectedIds(new Set());
-    fetchServices();
-    fetchGroups();
+    bulkDeleteMutation.mutate(Array.from(selectedIds));
   };
 
   const toggleSelect = (id: string) => {
@@ -217,9 +234,7 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
         });
 
         if (res.ok) {
-          toast.success("Import successful");
-          fetchServices();
-          fetchGroups();
+          bulkImportMutation.mutate(data);
         }
       } catch (err) {
         toast.error("Failed to import services");
@@ -578,7 +593,7 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
                     <UserManagement
                       users={users}
                       loading={usersLoading}
-                      onRefresh={fetchUsers}
+                      onRefresh={refetchUsers}
                     />
                   </div>
                 </TabsContent>

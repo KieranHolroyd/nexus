@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
 import { Checkbox } from "@/components/ui/checkbox";
 
+import { useMutation } from "@tanstack/react-query";
+
 interface Service {
   id: string;
   name: string;
@@ -63,42 +65,38 @@ export function ServiceDialog({
   const [groupPopoverOpen, setGroupPopoverOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [foundIcons, setFoundIcons] = useState<string[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
 
-  const searchIcons = async () => {
-    if (!formData.url) return;
-    setIsSearching(true);
-    try {
-      const res = await apiFetch(
-        `/api/icons/search?url=${encodeURIComponent(formData.url)}`,
-      );
-      const data = await res.json();
-      setFoundIcons(data || []);
-    } catch (err) {
-      toast.error("Failed to find icons");
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  const searchMutation = useMutation({
+    mutationFn: async () => {
+      if (!formData.url) return [];
+      const res = await apiFetch(`/api/icons/search?url=${encodeURIComponent(formData.url)}`);
+      return res.json();
+    },
+    onSuccess: (data) => setFoundIcons(data || []),
+    onError: () => toast.error("Failed to find icons"),
+  });
 
-  const handleSelectRemoteIcon = async (url: string) => {
-    setIsDownloading(true);
-    try {
+  const downloadMutation = useMutation({
+    mutationFn: async (url: string) => {
       const res = await apiFetch("/api/icons/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const data = await res.json();
+      return res.json();
+    },
+    onSuccess: (data) => {
       setFormData({ ...formData, icon: data.path });
       toast.success("Icon downloaded and set");
-    } catch (err) {
-      toast.error("Failed to download icon");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+    },
+    onError: () => toast.error("Failed to download icon"),
+  });
+
+  const isSearching = searchMutation.isPending;
+  const isDownloading = downloadMutation.isPending;
+
+  const searchIcons = () => searchMutation.mutate();
+  const handleSelectRemoteIcon = (url: string) => downloadMutation.mutate(url);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

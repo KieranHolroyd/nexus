@@ -5,6 +5,17 @@ import { Toaster } from "@/components/ui/sonner";
 import { FloatingNav } from "@/components/FloatingNav";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2 } from "lucide-react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Lazy load route components
 const Auth = lazy(() => import("@/components/Auth").then(m => ({ default: m.Auth })));
@@ -41,39 +52,42 @@ function App() {
   };
 
   return (
-    <TooltipProvider>
-      <HashRouter>
-        <Navbar
-          user={user}
-          onLogout={handleLogout}
-          search={search}
-          onSearchChange={setSearch}
-        />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<PublicDashboard search={search} />} />
-            <Route
-              path="/auth"
-              element={
-                user ? <Navigate to="/admin" /> : <Auth onLogin={handleLogin} />
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                user ? (
-                  <AdminDashboard search={search} />
-                ) : (
-                  <Navigate to="/auth" />
-                )
-              }
-            />
-          </Routes>
-        </Suspense>
-        <FloatingNav />
-        <Toaster position="top-right" />
-      </HashRouter>
-    </TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <HashRouter>
+          <Navbar
+            user={user}
+            onLogout={handleLogout}
+            search={search}
+            onSearchChange={setSearch}
+          />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<PublicDashboard search={search} />} />
+              <Route
+                path="/auth"
+                element={
+                  user ? <Navigate to="/admin" /> : <Auth onLogin={handleLogin} />
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  user ? (
+                    <AdminDashboard search={search} />
+                  ) : (
+                    <Navigate to="/auth" />
+                  )
+                }
+              />
+            </Routes>
+          </Suspense>
+          <FloatingNav />
+          <Toaster position="top-right" />
+        </HashRouter>
+      </TooltipProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }
 

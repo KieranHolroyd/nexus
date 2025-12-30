@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch, resolveUrl } from "@/lib/api-client";
+import { useQuery } from "@tanstack/react-query";
 import { UptimeView } from "./UptimeView";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -49,28 +50,24 @@ const item = {
 };
 
 export function PublicDashboard({ search }: PublicDashboardProps) {
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">(
     (localStorage.getItem("public_view_mode") as "grid" | "list") || "grid",
   );
 
-  useEffect(() => {
-    apiFetch("/api/services")
-      .then((res) => res.json())
-      .then((data) => {
-        const isLoggedIn = !!localStorage.getItem("nexus_user");
-        const publicServices =
-          data?.filter((s: Service) => {
-            if (!s.public) return false;
-            // If secured, only show if logged in
-            if (s.auth_required && !isLoggedIn) return false;
-            return true;
-          }) || [];
-        setServices(publicServices);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: services = [], isLoading } = useQuery<Service[]>({
+    queryKey: ["services"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/services");
+      const data = await res.json();
+      const isLoggedIn = !!localStorage.getItem("nexus_user");
+      return data?.filter((s: Service) => {
+        if (!s.public) return false;
+        // If secured, only show if logged in
+        if (s.auth_required && !isLoggedIn) return false;
+        return true;
+      }) || [];
+    },
+  });
 
   useEffect(() => {
     localStorage.setItem("public_view_mode", viewMode);
@@ -124,7 +121,7 @@ export function PublicDashboard({ search }: PublicDashboardProps) {
           </div>
         </motion.div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex flex-col items-center justify-center py-32">
             <div className="relative">
               <Loader2 className="animate-spin h-12 w-12 text-primary" />

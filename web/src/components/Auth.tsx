@@ -19,6 +19,8 @@ import {
 import { Server, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 interface AuthProps {
   onLogin: (user: { username: string }) => void;
 }
@@ -26,62 +28,50 @@ interface AuthProps {
 export function Auth({ onLogin }: AuthProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const queryClient = useQueryClient();
 
-  const handleRegister = async () => {
-    if (!username) {
-      toast.error("Please enter a username");
-      return;
-    }
-    setLoading(true);
-    try {
+  const registerMutation = useMutation({
+    mutationFn: async () => {
+      if (!username) throw new Error("Please enter a username");
       if (password) {
         await api.registerWithPassword(username, password);
-        toast.success("Account created! You can now authenticate.");
+        return "Account created! You can now authenticate.";
       } else {
         const options = await api.beginRegistration(username);
-        const attestationResponse = await startRegistration({
-          optionsJSON: options,
-        });
+        const attestationResponse = await startRegistration({ optionsJSON: options });
         await api.finishRegistration(username, attestationResponse);
-        toast.success("Identity profile initialized! You can now authenticate.");
+        return "Identity profile initialized! You can now authenticate.";
       }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to initialize account");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onSuccess: (msg) => toast.success(msg),
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to initialize account"),
+  });
 
-  const handleLogin = async () => {
-    if (!username) {
-      toast.error("Please enter your username");
-      return;
-    }
-    setLoading(true);
-    try {
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      if (!username) throw new Error("Please enter your username");
       if (password) {
         await api.loginWithPassword(username, password);
-        toast.success("Access granted. Welcome back.");
-        onLogin({ username });
       } else {
         const options = await api.beginLogin(username);
-        const assertionResponse = await startAuthentication({
-          optionsJSON: options,
-        });
+        const assertionResponse = await startAuthentication({ optionsJSON: options });
         await api.finishLogin(username, assertionResponse);
-        toast.success("Access granted. Welcome back.");
-        onLogin({ username });
       }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Authentication verification failed",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      return { username };
+    },
+    onSuccess: (u) => {
+      toast.success("Access granted. Welcome back.");
+      onLogin(u);
+      queryClient.invalidateQueries(); // Refresh everything after login
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Authentication verification failed"),
+  });
+
+  const loading = registerMutation.isPending || loginMutation.isPending;
+
+  const handleRegister = () => registerMutation.mutate();
+  const handleLogin = () => loginMutation.mutate();
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">

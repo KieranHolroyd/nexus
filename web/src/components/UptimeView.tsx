@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, TrendingUp, Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, subDays, startOfDay, isSameDay } from "date-fns";
@@ -22,21 +22,14 @@ interface UptimeViewProps {
 }
 
 export function UptimeView({ serviceId }: UptimeViewProps) {
-  const [history, setHistory] = useState<UptimeHistory | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    apiFetch(`/api/services/${serviceId}/uptime`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch uptime history");
-        return res.json();
-      })
-      .then((data) => setHistory(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [serviceId]);
+  const { data: history, isLoading: loading, error } = useQuery<UptimeHistory>({
+    queryKey: ["uptime", serviceId],
+    queryFn: async () => {
+      const res = await apiFetch(`/api/services/${serviceId}/uptime`);
+      if (!res.ok) throw new Error("Failed to fetch uptime history");
+      return res.json();
+    },
+  });
 
   if (loading) {
     return (
@@ -50,7 +43,7 @@ export function UptimeView({ serviceId }: UptimeViewProps) {
     return (
       <div className="flex items-center gap-2 p-4 text-destructive bg-destructive/10 rounded-xl border border-destructive/20">
         <AlertCircle size={18} />
-        <span className="text-sm font-medium">{error || "No history available"}</span>
+        <span className="text-sm font-medium">{error instanceof Error ? error.message : "No history available"}</span>
       </div>
     );
   }
