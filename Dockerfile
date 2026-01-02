@@ -3,9 +3,9 @@ WORKDIR /app/web
 ARG BUILD_DATE
 ENV BUILD_DATE=${BUILD_DATE:-unknown}
 RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY web/package.json ./
-COPY web ./
+COPY web/package*.json ./
 RUN pnpm install
+COPY web/ ./
 RUN pnpm build
 
 FROM golang:1.25-alpine AS backend-builder
@@ -21,8 +21,8 @@ WORKDIR /app
 COPY --from=backend-builder /app/nexus .
 COPY --from=frontend-builder /app/web/.next/standalone ./
 COPY --from=frontend-builder /app/web/public ./public
-COPY --from=frontend-builder /app/web/.next/static ./_next/static
-RUN mkdir -p /app/data
+COPY --from=frontend-builder /app/web/.next/static ./static
+RUN mkdir -p /app/data /app/data/icons
 
 ENV PORT=8080
 ENV API_PORT=8081
