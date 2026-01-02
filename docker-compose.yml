@@ -47,6 +47,7 @@ services:
       - nexus-data:/app/data
     environment:
       - PORT=8080
+      - API_PORT=8081
       - DB_TYPE=mysql
       - DB_USER=nexus
       - DB_PASSWORD=nexus_password

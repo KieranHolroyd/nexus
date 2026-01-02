@@ -1,6 +1,10 @@
 const getBaseUrl = () => {
   const savedUrl = localStorage.getItem("nexus_server_url");
   if (savedUrl) return savedUrl;
+  // Default to same origin (for Docker deployment where frontend and API are on same port)
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
   return "";
 };
 

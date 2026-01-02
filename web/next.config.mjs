@@ -1,15 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: "export",
+  output: "standalone",
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
   poweredByHeader: false,
   images: {
     unoptimized: true,
   },
-  experimental: {
-    ppr: false,
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://127.0.0.1:8081/api/:path*",
+      },
+    ];
   },
 };
 

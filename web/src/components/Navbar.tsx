@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import {
   Server,
   Search,
@@ -50,7 +50,7 @@ export function Navbar({
   return (
     <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-8">
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-2 group">
           <div className="bg-primary/10 p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
             <Server className="h-5 w-5 text-primary" />
           </div>
@@ -59,7 +59,7 @@ export function Navbar({
 
         <nav className="hidden md:flex items-center ml-8 gap-1">
           <Button variant="ghost" asChild size="sm" className="font-bold">
-            <Link to="/status" className="flex items-center gap-2">
+            <Link href="/status" className="flex items-center gap-2">
               <ShieldCheck size={16} className="text-primary" />
               Status
             </Link>
@@ -128,13 +128,13 @@ export function Navbar({
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/status" className="cursor-pointer">
+                  <Link href="/status" className="cursor-pointer">
                     <Activity className="mr-2 h-4 w-4" />
                     Status Board
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/admin" className="cursor-pointer">
+                  <Link href="/admin" className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
                     Admin Dashboard
                   </Link>
@@ -158,7 +158,7 @@ export function Navbar({
                   size="sm"
                   className="shadow-sm"
                 >
-                  <Link to="/auth">
+                  <Link href="/auth">
                     <LogIn className="mr-2 h-4 w-4" />
                     Login
                   </Link>

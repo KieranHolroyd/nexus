@@ -84,7 +84,9 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
 
+	// API routes first - these take priority
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status": "ok"}`)
@@ -101,17 +103,20 @@ func main() {
 	api.RegisterServiceHandlers(r)
 	api.RegisterUserHandlers(r)
 
-	// Serve Icons
-	FileServer(r, "/icons", http.Dir("data/icons"))
+	// Serve Icons from data/icons
+	r.Get("/icons/*", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/icons/")
+		http.ServeFile(w, r, "data/icons/"+path)
+	})
 
-	// Serve Frontend
+	// Serve Frontend static files - catchall must be last
 	workDir, _ := os.Getwd()
 	filesDir := http.Dir(path.Join(workDir, "web/dist"))
 	FileServer(r, "/", filesDir)
 
-	port := os.Getenv("PORT")
+	port := os.Getenv("API_PORT")
 	if port == "" {
-		port = "8080"
+		port = "8081"
 	}
 
 	log.Printf("Server starting on port %s", port)

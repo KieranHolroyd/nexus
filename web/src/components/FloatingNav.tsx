@@ -1,5 +1,6 @@
 import { Home, LayoutDashboard, Settings, Activity } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "./ModeToggle";
 import {
@@ -22,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export function FloatingNav() {
-  const location = useLocation();
+  const pathname = usePathname();
   const [serverUrl, setServerUrl] = useState("http://localhost:8080");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -48,12 +49,12 @@ export function FloatingNav() {
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
       <nav className="flex items-center gap-1 p-1 bg-background border rounded-full shadow-lg">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = pathname === item.path;
           return (
             <Tooltip key={item.path}>
               <TooltipTrigger asChild>
                 <Link
-                  to={item.path}
+                  href={item.path}
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors",
                     isActive
