@@ -1,28 +1,57 @@
-FROM node:20-slim AS builder
+FROM node:20-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
-ARG BUILD_DATE
-ENV BUILD_DATE=${BUILD_DATE:-unknown}
+
+# Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY web/package*.json ./
-RUN pnpm install
-COPY web/ ./
-RUN pnpm next build
 
-FROM node:20-slim
+# Install dependencies
+COPY web/package.json web/pnpm-lock.yaml* ./
+RUN if [ -f pnpm-lock.yaml ]; then pnpm i --frozen-lockfile; else pnpm i; fi
+
+# Rebuild the source code only when needed
+FROM base AS builder
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup --gid 1001 nodejs && adduser --uid 1001 --gid 1001 --shell /bin/sh --disabled-login --disabled-password nextjs
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-COPY --from=builder --chown=1001:1001 /app/.next/standalone ./
-COPY --from=builder --chown=1001:1001 /app/public ./public
-COPY --from=builder --chown=1001:1001 /app/.next/static ./static
+COPY --from=deps /app/node_modules ./node_modules
+COPY web/ .
+
+RUN pnpm run build
+
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy standalone output
+COPY --from=builder /app/.next/standalone ./
+# Copy static files
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+# Ensure the nested app structure is flattened so server.js can find .next
+RUN APP_DIR=$(find . -path "*/.next" -not -path "./.next" -exec dirname {} \; | head -n 1) && \
+	if [ -n "$APP_DIR" ]; then \
+	echo "Flattening nested app structure from $APP_DIR" && \
+	cp -r $APP_DIR/. . && \
+	rm -rf $(echo $APP_DIR | cut -d/ -f2); \
+	fi
 
 USER nextjs
 
-ENV PORT=3000
-ENV API_URL=http://server:8081
-
 EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "server.js"]
