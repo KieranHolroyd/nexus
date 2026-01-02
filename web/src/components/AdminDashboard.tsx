@@ -228,8 +228,21 @@ export function AdminDashboard({ search }: AdminDashboardProps) {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
-        const data = JSON.parse(ev.target?.result as string);
-        if (!Array.isArray(data)) throw new Error("Invalid format");
+        const rawData = JSON.parse(ev.target?.result as string);
+        if (!Array.isArray(rawData)) throw new Error("Invalid format");
+
+        const data = rawData.map((item: Record<string, unknown>) => ({
+          name: item.name as string || "",
+          url: item.url as string || "",
+          group: item.group as string || "",
+          order: Number(item.order) || 0,
+          public: item.public as boolean ?? true,
+          auth_required: item.auth_required as boolean ?? false,
+          new_tab: item.new_tab as boolean ?? false,
+          check_health: item.check_health as boolean ?? true,
+          health_status: item.health_status as string || "",
+          last_checked: item.last_checked || null,
+        }));
 
         const res = await apiFetch("/api/services/bulk", {
           method: "POST",
